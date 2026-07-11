@@ -1,0 +1,36 @@
+[project]
+name = "foundry-pattern-library"
+version = "0.1.0"
+description = "From AI Gateway to AI Factory — eight runnable Microsoft Foundry patterns for a Private Banking scenario, positioned alongside AWS."
+readme = "README.md"
+# Pinned below 3.14: several Azure SDK deps have no 3.14 wheels yet.
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # Core Foundry / agents
+    "azure-ai-projects>=2.1.0",
+    "azure-ai-agents>=1.1.0",
+    "azure-identity>=1.19.0",
+    # Evaluations (Pattern 7)
+    "azure-ai-evaluation>=1.0.0",
+    # Observability (Pattern 6)
+    "azure-monitor-opentelemetry>=1.6.0",
+    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-instrumentation-openai-v2>=2.0b0",
+    # Multi-agent orchestration (Pattern 5)
+    "agent-framework>=1.9.0",
+    # OpenAI-compatible calls (Pattern 1 gateway client)
+    "openai>=1.40.0",
+    # MCP interop (Patterns 3 + 9)
+    "mcp>=1.2.0",
+    # Utility
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "python-pptx>=1.0.2",
+]

@@ -1,0 +1,7 @@
+agent-framework-foundry
+agent-framework-foundry-hosting>=1.0.0a260630
+azure-identity
+python-dotenv
+
+# debugpy enables local debugging with the Foundry Toolkit VS Code extension.
+debugpy

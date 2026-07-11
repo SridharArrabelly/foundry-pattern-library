@@ -1,0 +1,55 @@
+# Pattern 6 — Observability & tracing
+
+**Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
+
+## The 60-second track
+> "This pattern creates a **real Foundry agent** — `rm-assistant-traced`, it shows up in the
+> **Agents** list, you can chat with it live — and then runs one turn with **OpenTelemetry**
+> switched on. Now look at the same run in **three** places:
+>
+>   1. **Foundry portal → Agents** — the agent is a first-class, versioned object.
+>   2. **Foundry portal → Tracing tab** — the agent-native waterfall, no extra setup.
+>   3. **Application Insights** — Transaction search / Logs (KQL) on the *same* data.
+>
+> The waterfall reads: `rm-observability-demo → invoke_agent → get_client_holdings →
+> chat gpt-5.4-mini`, each span carrying **model, prompt + completion, token counts,
+> latency and the tool name**. That's how you debug a non-deterministic agent and
+> attribute spend.
+>
+> Two things your homegrown factory struggles with. First, it's **agent-aware** — spans
+> understand agents, tools and runs, not just HTTP calls, and Foundry traces the run
+> **server-side** into the Tracing tab for free. Second, it's **OpenTelemetry**, so there's
+> **no lock-in**: the same stream goes to App Insights *and* your Datadog / Grafana /
+> Elastic via one OTLP exporter. AWS X-Ray/CloudWatch is fine — but it's not agent-native
+> and it's not portable off AWS."
+
+## Why a Foundry agent (not an in-process one)
+A Foundry agent has a **portal identity** and Foundry exports its run traces server-side to
+the project's connected App Insights — the exact resource that backs the **Tracing** tab.
+We ALSO wire the client-side Azure Monitor exporter, so our parent span + the local tool
+call are captured too. Result: the run shows in the portal Tracing tab **and** App Insights.
+
+## What it beats in a homegrown factory
+- **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
+- **Token + cost + latency** attributes per span → real observability & FinOps.
+- **OpenTelemetry** = portable; ship to Azure Monitor *and* your existing backend.
+
+## Money line
+> "Same agent you saw in the Agents list — now with a flight recorder. And it's OTel, so it's yours."
+
+## Demo steps
+1. `uv run python 06-observability/enable_tracing.py` → prints the agent name/version + answer
+   (C-1290 = **not compliant**, over-weight equities).
+2. Portal: **Foundry → Agents → rm-assistant-traced** — show it exists; optionally chat with it.
+3. Portal: **Foundry → Tracing** → open the run's waterfall (server-side spans).
+4. **App Insights → Transaction search / Logs** → same trace, ~1–2 min ingestion lag.
+5. Point at a model span: tokens, latency, prompt/completion. Mention the one-line OTLP dual-export.
+
+## Notes
+- Two env flags must be ON **before** instrumentation (the script sets them):
+  `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` (prompt/completion text on spans) and
+  `AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING=true` (emit the GenAI semantic spans). Without the
+  second, App Insights logs a warning and you get only generic spans.
+- Benign on a laptop: red `169.254.169.254` / IMDS / WinError 10051 tracebacks are the Azure
+  Monitor VM resource detector + managed-identity probe looking for cloud metadata. Harmless,
+  and absent on Azure compute.
