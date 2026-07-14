@@ -5,6 +5,14 @@
 .azure/
 **/.azure/
 
+# ---- Private working notes (not for the public repo) ----
+plan.md
+
+# ---- Office lock files ----
+~$*.pptx
+~$*.docx
+~$*.xlsx
+
 # ---- Python ----
 .venv/
 **/.venv/
