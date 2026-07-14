@@ -34,3 +34,20 @@ identical, then a hit every 128 identical tokens; hits surface as
 `usage.prompt_tokens_details.cached_tokens`; `prompt_cache_key` sharpens routing.
 Runs keyless through the gateway (`gateway_client()`), `model-router` deployment for
 the router leg. Prompt caching is stable (not preview).
+
+## Golden expected output
+```
+Prompt caching (same stable prefix twice):
+Call 1 (cold — populates the cache):
+  model=gpt-5.4-mini-2026-03-17  prompt=1476  cached=0     latency=6913ms
+Call 2 (same prefix — expect cached_tokens > 0, lower latency):
+  model=gpt-5.4-mini-2026-03-17  prompt=1475  cached=1280  latency=1495ms
+
+Prompt cache HIT — cached input is discounted (up to 100% off on Provisioned).
+
+Model Router (model-router) — a trivial prompt should route to the cheapest capable model:
+  model=grok-4-1-fast-reasoning  prompt=1463  cached=1618  latency=1756ms
+```
+> The two numbers that sell it: **cached 0 → 1,280** and latency **~6.9s → ~1.5s** on
+> the identical prefix. The router leg often lands on a small cross-provider model.
+

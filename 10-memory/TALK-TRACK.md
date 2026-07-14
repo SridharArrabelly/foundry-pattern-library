@@ -41,3 +41,27 @@ Uses the official API from *Create and use memory in Foundry Agent Service*:
 chat model (`gpt-5.4-mini`) **and** an embedding deployment
 (`text-embedding-3-small`). Keyless via `DefaultAzureCredential`. Preview surface —
 verify method names against the current quickstart before demoing.
+
+## Golden expected output
+```
+memory store created: rm-client-memory
+agent: rm-assistant-memory v1
+
+== SHORT-TERM (same session) ==
+assistant: No — a 60% equity fund is not a fit for your stated profile.
+It's well above your max 20% equity limit ... (caps equities at 20%)
+
+== LONG-TERM (new session, days later) ==
+extracted 4 memories:
+  - created: ... conservative, maximum 20% allocation to equities, and dislikes crypto ...
+  - updated: ... conservative risk appetite ...
+  - updated: ... equity exposure capped at 20% or less ...
+  - updated: ... dislikes crypto / no crypto exposure ...
+
+assistant (new session): Given your conservative profile, I'd keep equities capped
+at 20% and no crypto ... (rebalance honours the remembered preference)
+```
+> The point: the **new session** answer respects "20% cap / no crypto" though it was
+> never re-told — recall came from the long-term store. (Store name says "reused" on
+> re-runs — that's fine.)
+

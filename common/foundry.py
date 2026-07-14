@@ -109,9 +109,11 @@ def gateway_client():
         )
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-    token_provider = get_bearer_token_provider(
-        DefaultAzureCredential(), GATEWAY_TOKEN_SCOPE
-    )
+    # Longer process_timeout + a pre-warm call avoid the az-CLI token race that
+    # otherwise flakes with a 401 on the first (or a rapid burst of) requests.
+    cred = DefaultAzureCredential(process_timeout=30)
+    cred.get_token(GATEWAY_TOKEN_SCOPE)  # pre-warm before the workload
+    token_provider = get_bearer_token_provider(cred, GATEWAY_TOKEN_SCOPE)
     return AzureOpenAI(
         azure_endpoint=endpoint,
         azure_ad_token_provider=token_provider,

@@ -51,3 +51,22 @@ for token counts. Cost/value assumptions are env-driven
 (`USD_PER_1K_TOKENS`, `USD_VALUE_PER_TASK`, `MONTHLY_TASK_VOLUME`). Agent 365 / ROI
 for agents are preview/portal — this is the engineer-facing equivalent you can run
 today.
+
+## Golden expected output
+```
+Running 5 RM tasks through the gateway (gpt-5.4-mini)...
+
+  [ok]   116 tok  Summarise the suitability rules for a Conservative c
+  [ok]    78 tok  A client wants 70% equities but is Conservative — is
+  [ok]   145 tok  List two capital-preservation fund types for a low-r
+  [ok]    77 tok  Explain 'concentration risk' to a client in one sent
+  [ok]    64 tok  Draft a one-line rebalance note: trim equities above
+
+agent                 runs  done   tokens     cost$   value$       ROI
+rm-assistant             5     5      511    0.0003    60.00  195,694x
+
+Projected at 5,000 tasks/month:  spend $0.30  ->  value $60,000  (net $60,000)
+```
+> The money line: **$0.30 spend → $60,000 value** at 5,000 tasks/month. Token counts
+> vary run-to-run; the ratio is the point. (`ok`/`x` is the per-task outcome check.)
+
