@@ -1,0 +1,43 @@
+# Pattern 10 — Memory (short-term + long-term)
+
+**Slide title:** *Memory is a platform primitive — not a database you build.*
+
+## The 60-second track
+> "Your homegrown factory bolts on a state store and a vector DB to make an agent
+> *remember*. Foundry gives you two kinds of memory as a primitive. **Short-term** is
+> a Conversation — inside one session the agent recalls what the client just said.
+> [run it] Watch the second answer honour 'max 20% equities, no crypto' with no
+> re-stating. **Long-term** is a per-user **Memory Store** — Foundry extracts the
+> durable facts [show the 4 extracted memories] and a **brand-new conversation**,
+> days later, recalls them. You didn't build a state store or a vector DB — you set
+> a scope and a TTL. And because it's scoped per user, *forget* is one call —
+> right-to-be-forgotten for a bank."
+
+## What it beats in a homegrown factory
+- **Managed memory** — extraction, consolidation, retrieval, TTL are Foundry's job.
+- **Per-user scope** — isolation + GDPR *forget* (`delete_scope`) out of the box.
+- **New API, no glue** — `beta.memory_stores` + `MemorySearchPreviewTool` + the
+  Responses/Conversations API. No thread-juggling, no bespoke embeddings pipeline.
+
+## Money line
+> "Short-term is the session. Long-term is the store. You configured a scope and a
+> TTL — you didn't build a memory system."
+
+## Demo steps
+1. `uv run python 10-memory/memory_agent.py`.
+2. **Short-term:** the follow-up in the same conversation already respects the
+   stated preference — no context re-passed.
+3. **Long-term:** the script force-extracts memories (prints them), then a **fresh
+   conversation** answers a rebalance question honouring '20% cap / no crypto'.
+4. Open Foundry → project → **Agents → rm-assistant-memory** and the per-user
+   **Memory** store to show the extracted facts in the portal.
+5. (Optional) uncomment `delete_scope` to prove *forget*.
+
+## Grounding
+Uses the official API from *Create and use memory in Foundry Agent Service*:
+`project.beta.memory_stores.create(MemoryStoreDefaultDefinition(...))`,
+`MemorySearchPreviewTool(memory_store_name, scope)`, and runs via
+`openai_client.responses.create(..., conversation=...)`. Long-term memory needs a
+chat model (`gpt-5.4-mini`) **and** an embedding deployment
+(`text-embedding-3-small`). Keyless via `DefaultAzureCredential`. Preview surface —
+verify method names against the current quickstart before demoing.

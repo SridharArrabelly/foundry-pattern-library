@@ -1,6 +1,6 @@
 # Foundry Pattern Library — "From AI Gateway to AI Factory"
 
-Nine runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
+Twelve runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
 AWS + your existing gateway** — not instead of them.
 
@@ -40,6 +40,9 @@ flowchart LR
 | 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 8 | `08-governance/` | Governance / Prompt Shields | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
 | 9 | `09-aws-interop/` | AWS cross-cloud interop (the close) | Foundry agent → AWS tool over MCP/A2A (**slide + code walkthrough**) | 📖 code |
+| 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
+| 11 | `11-caching-cost/` | Caching & Cost | Prompt-cache hit on the repeat call (cached tokens) + Model Router downshift, through the gateway | ✅ |
+| 12 | `12-agent365-roi/` | Agent 365 & ROI | Cost ↔ outcome ↔ ROI table from live agent runs; Agent 365 adds org-wide inventory/identity/policy | ✅ |
 
 Every pattern folder has a `TALK-TRACK.md` — the 60-second script + "what it beats in a
 homegrown factory." Plus `bedrock-vs-foundry.md` for the coexistence Q&A.
@@ -173,6 +176,37 @@ flowchart LR
   MCP --> LT
   MCP -.->|"A2A"| BA
   FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
+```
+
+### 10 · Memory — short-term + long-term
+Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
+
+```mermaid
+flowchart LR
+  U["RM / client"] --> AG["Foundry agent<br/>+ MemorySearchPreviewTool"]
+  AG -->|"same session"| C["Conversation<br/>(short-term)"]
+  AG -->|"across sessions"| MS["Memory Store<br/>per-user scope · TTL<br/>(long-term)"]
+  MS -.->|"embeddings"| EMB["text-embedding-3-small"]
+```
+
+### 11 · Caching & Cost
+Two cost layers: model-side prompt caching (identical prefix) and gateway semantic cache (equivalent prompts), plus Model Router picking the cheapest capable model.
+
+```mermaid
+flowchart LR
+  A["App"] -->|"Entra token"| GW["Azure AI Gateway (APIM)<br/>semantic cache"]
+  GW --> MR["Model Router<br/>cheapest capable model"]
+  MR --> M["Foundry model<br/>prompt cache: cached_tokens ↑"]
+```
+
+### 12 · Agent 365 & ROI
+Every agent is an identity you can inventory and a cost you can tie to an outcome — governance and FinOps in one plane.
+
+```mermaid
+flowchart LR
+  RUNS["Live agent runs<br/>tokens + outcome"] --> ROI["Cost ↔ value ↔ ROI"]
+  TR["App Insights traces<br/>(Pattern 6)"] -.->|"KQL by agent/version"| ROI
+  A365["Agent 365 (portal)"] -->|"org-wide inventory · Entra Agent ID · policy"| ROI
 ```
 
 ## Setup (uv)

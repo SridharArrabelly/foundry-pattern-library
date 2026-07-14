@@ -28,6 +28,12 @@ def env(name: str, default: str | None = None, required: bool = False) -> str | 
 PROJECT_ENDPOINT = env("PROJECT_ENDPOINT")
 MODEL_DEPLOYMENT_NAME = env("MODEL_DEPLOYMENT_NAME", "gpt-5.4-mini")
 
+# Embedding deployment — Memory Store (Pattern 10) needs one to index long-term
+# memories. Model Router deployment — Pattern 11 routes to the cheapest model that
+# still answers. Both are real deployments on the Foundry account.
+EMBEDDING_DEPLOYMENT_NAME = env("EMBEDDING_DEPLOYMENT_NAME", "text-embedding-3-small")
+MODEL_ROUTER_DEPLOYMENT = env("MODEL_ROUTER_DEPLOYMENT", "model-router")
+
 # The Foundry AI Services *account* host (drop the /api/projects/<name> suffix).
 # It's a multi-service account, so Content Safety (Prompt Shields) lives here too —
 # same resource, same keyless Entra auth (Pattern 8).
