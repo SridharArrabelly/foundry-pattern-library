@@ -238,17 +238,23 @@ Patterns 3 + 4 run from the **skill-forge** repo (`../skill-forge`): `uv run ski
 then use the engine selector (hand-rolled loop → Copilot SDK → Copilot SDK BYOM → Agent
 Framework) and the skill chips.
 
-## Suggested run-of-show (60 min)
+## Suggested run-of-show
 
-| Time | Pattern | Point to land |
-|------|---------|---------------|
-| 0–5 | 1 Wedge | Disarm the AWS objection: Foundry plugs in *behind* your gateway |
-| 5–15 | 2 Hosted + 3 Microsoft IQ | Managed runtime; grounding AWS can't match |
-| 15–25 | 4 Agentic loop + 5 Multi-agent | Skills-in-one-loop; multi-agent *when* it earns it |
-| 25–33 | 6 Observability | Create a Foundry agent, run one traced turn; show it in the **portal Agents + Tracing** *and* App Insights; OTel = no lock-in |
-| 33–41 | 7 Evaluations | Score the same agent; the wrong row fails the CI gate |
-| 41–50 | 8 Governance | The closer: block a live injection; Entra Agent ID + Purview |
-| 50–60 | 9 AWS interop + Q&A | Coexistence: Bedrock runs *an agent*; Foundry runs the *factory* |
+| Index | Pattern |
+|-------|---------|
+| 1 | Wedge → AI Hub Gateway / Citadel |
+| 2 | Hosted Agent Service |
+| 3 | Microsoft IQ (Web IQ + Foundry IQ) |
+| 4 | Agentic Loop (Build Skills, Not Agents) |
+| 5 | Multi-agent (Agent Framework) |
+| 6 | Observability & tracing (OpenTelemetry) |
+| 7 | Evaluation → optimization (CI gate) |
+| 8 | Governance / Prompt Shields / Content Safety |
+| 9 | AWS cross-cloud interop (MCP / A2A) |
+| 10 | Memory (Short-term & Long-term) |
+| 11 | Caching & Cost |
+| 12 | Agent 365 & ROI |
+| — | Q & A |
 
 ## Live-demo safety
 - **Pre-run every script once** and keep terminal output / portal screenshots as fallback.
