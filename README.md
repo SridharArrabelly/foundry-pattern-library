@@ -2,17 +2,29 @@
 
 Twelve runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
-AWS + your existing gateway** — not instead of them.
+your existing gateway and cloud** — not instead of them.
 
 ## The story
 
 > **Build in GitHub → Run & optimize in Foundry → Reach users in M365.**
 > A gateway gives you **model access**. Foundry gives you the **agent factory** — the
 > runtime (Plan/Act/Observe), grounding (Microsoft IQ), identity, evaluation, tracing and
-> safety plane *around* the models. **Keep your LiteLLM gateway. Keep AWS. Add the factory.**
+> safety plane *around* the models. **Keep your gateway (LiteLLM · APIM · or your own). Keep your existing cloud. Add the factory.**
 
 Close on the Build 2026 triad: **Foundry** (platform) + **Citadel** (governance at scale,
 Foundry + APIM) + **Agentic Patterns** (business value).
+
+## Reuse for any customer
+
+This is a **general-purpose Foundry pattern library**, not a pitch against any one vendor.
+To run it for a different customer, swap three variables — the patterns don't change:
+
+- **Gateway** — LiteLLM, Azure APIM, or their own (the demo gateway here is Azure APIM).
+- **Other cloud / providers** — AWS Bedrock is the running *example* in Pattern 9; swap in whatever they run.
+- **Scenario** — Private Banking is the default narrative; any industry works (the agent
+  instructions and golden set are the only per-scenario bits).
+
+See [`docs/coexistence.md`](docs/coexistence.md) for the "coexist with what they already have" story.
 
 ## Architecture at a glance
 
@@ -23,7 +35,7 @@ then adds the factory plane (runtime, grounding, identity, eval, tracing, safety
 flowchart LR
   App["Your apps &amp; agents<br/>(no API keys)"] -->|"Entra ID token"| GW["Azure AI Gateway (APIM)<br/>validate-azure-ad-token"]
   GW -->|"managed identity"| F["Foundry — models &amp; agents"]
-  GW -.->|"existing provider"| B["AWS Bedrock"]
+  GW -.->|"existing provider"| B["Your other cloud<br/>(e.g., AWS Bedrock)"]
   F --> FAC["Agent factory:<br/>hosted agents · Microsoft IQ · identity · eval · tracing · safety"]
 ```
 
@@ -39,13 +51,14 @@ flowchart LR
 | 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights | ✅ |
 | 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 8 | `08-governance/` | Governance / Prompt Shields | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
-| 9 | `09-aws-interop/` | AWS cross-cloud interop (the close) | Foundry agent → AWS tool over MCP/A2A (**slide + code walkthrough**) | 📖 code |
+| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 | 11 | `11-caching-cost/` | Caching & Cost | Prompt-cache hit on the repeat call (cached tokens) + Model Router downshift, through the gateway | ✅ |
 | 12 | `12-agent365-roi/` | Agent 365 & ROI | Cost ↔ outcome ↔ ROI table from live agent runs; Agent 365 adds org-wide inventory/identity/policy | ✅ |
 
 Every pattern folder has a `TALK-TRACK.md` — the 60-second script + "what it beats in a
-homegrown factory." Plus `bedrock-vs-foundry.md` for the coexistence Q&A.
+homegrown factory." Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
+existing gateway, cloud, or agents.
 
 ## Pattern diagrams
 
@@ -53,13 +66,13 @@ One architecture per pattern — the same diagrams that appear on each slide of
 `foundry-patterns.pptx`.
 
 ### 1 · Wedge → AI Hub Gateway / Citadel
-Keyless via Entra ID — 401 without a token, 200 with. Foundry sits beside Bedrock behind the gateway.
+Keyless via Entra ID — 401 without a token, 200 with. Foundry sits beside your existing providers behind the gateway.
 
 ```mermaid
 flowchart LR
   A["Your app / agent<br/>(no API key)"] -->|"Entra ID token"| G["Azure AI Gateway (APIM)<br/>validate-azure-ad-token"]
   G -->|"managed identity"| M["Foundry model<br/>gpt-5.4-mini"]
-  G -.->|"existing provider"| BR["AWS Bedrock"]
+  G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
 ### 2 · Hosted Agent Service
@@ -160,8 +173,8 @@ flowchart LR
   AG -.->|"governed by"| GOV["Entra Agent ID · Purview DSPM for AI"]
 ```
 
-### 9 · AWS Cross-cloud Interop (the close)
-A Foundry agent calls an AWS tool over MCP (mock Lambda); A2A hands off to a Bedrock agent.
+### 9 · Cross-cloud Interop — bring your other cloud
+A Foundry agent calls an external tool over MCP (an AWS Lambda in this example); A2A hands off to another cloud's agent (Bedrock here). Swap in whatever the customer runs.
 
 ```mermaid
 flowchart LR

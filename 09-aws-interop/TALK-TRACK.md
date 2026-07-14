@@ -1,9 +1,10 @@
-# Pattern 9 — AWS cross-cloud interop (the close)
+# Pattern 9 — Cross-cloud interop — bring your other cloud
 
-**Slide title:** *Coexistence: Bedrock runs an agent. Foundry runs the agent factory. MCP/A2A joins them.*
+**Slide title:** *Coexistence: your other cloud runs an agent. Foundry runs the agent factory. MCP/A2A joins them.*
 
 > **This pattern is a slide + code walkthrough** — no AWS access in this environment. The
-> mock server proves the wire; the topology slide shows the real thing.
+> mock server proves the wire; the topology slide shows the real thing. **AWS Lambda + Bedrock
+> are the concrete example here — swap in whatever cloud the customer runs.**
 
 ## The 60-second track
 > "You're an AWS shop, and nothing here asked you to leave. Watch the coexistence pattern:
@@ -32,4 +33,4 @@
 ## Demo steps
 1. `uv run python 09-aws-interop/call_via_mcp.py` — Foundry-side client → mock AWS tool over MCP.
 2. Show `mcp_aws_lambda_server.py` — the *real* AWS version (boto3 Lambda invoke); "swap this in, agent unchanged."
-3. Land the coexistence + migration path (see `../bedrock-vs-foundry.md`).
+3. Land the coexistence + migration path (see `../docs/coexistence.md`).
