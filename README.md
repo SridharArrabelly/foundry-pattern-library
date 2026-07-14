@@ -46,7 +46,7 @@ flowchart LR
 | 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
 | 2 | `02-hosted-agents/` | Hosted Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
 | 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Governed Web IQ MCP tool (keyless via Foundry connection) + Azure AI Search grounding | ✅ (via skill-forge) |
-| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | skill-forge: one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
+| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
 | 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights | ✅ |
 | 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
@@ -247,7 +247,8 @@ uv run python 02-hosted-agents/create_agent.py
 # ... etc
 ```
 
-Patterns 3 + 4 run from the **skill-forge** repo (`../skill-forge`): `uv run skill-forge`,
+Patterns 3 + 4 run from the **[skill-forge](https://github.com/SridharArrabelly/skill-forge)**
+repo (clone it next to this one as `../skill-forge`): `uv run skill-forge`,
 then use the engine selector (hand-rolled loop → Copilot SDK → Copilot SDK BYOM → Agent
 Framework) and the skill chips.
 
