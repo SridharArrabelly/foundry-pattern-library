@@ -24,7 +24,7 @@ assistants API, which created a brand-new agent every run.
 
 Verified against azure-ai-projects 2.3.0 + openai 2.45.0 (keyless, DefaultAzureCredential).
 
-Run:  uv run python 02-hosted-agents/create_agent.py
+Run:  uv run python 02-agent-service/create_prompt_agent.py
 """
 import json
 import os
