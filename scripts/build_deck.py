@@ -379,7 +379,7 @@ def map_slide(prs):
     _run(t.text_frame.paragraphs[0], "Run-of-show — 60 minutes, 1 slide + 1 demo each", 30, WHITE, bold=True)
     rows = [
         "0\u20135    1  Wedge \u2192 AI Hub Gateway / Citadel",
-        "5\u201315   2  Hosted Agent Service   \u00b7   3  Microsoft IQ (Web IQ + Foundry IQ)",
+        "5\u201315   2  Agent Service   \u00b7   3  Microsoft IQ (Web IQ + Foundry IQ)",
         "15\u201325  4  Agentic Loop (Build Skills, Not Agents)   \u00b7   5  Multi-agent (Agent Framework)",
         "25\u201333  6  Observability & tracing (OpenTelemetry)",
         "33\u201341  7  Evaluation \u2192 optimization (CI gate)",
@@ -425,7 +425,7 @@ PATTERNS = [
      ["Their LiteLLM gateway stays \u2014 zero rip-and-replace",
       "Reframes gateway as commodity; factory as the differentiation",
       "Ships as AI Hub Gateway / Citadel (Foundry + APIM)"], dia1),
-    (2, "Hosted Agent Service",
+    (2, "Agent Service",
      "You didn't build a runtime, a vector store and an identity system. You called an API \u2014 or handed us a container.",
      "Two hosting models \u2014 declarative prompt agent + BYO-code hosted agent \u2014 both first-class, both with an Entra Agent ID.",
      ["Prompt-based: model + instructions + tools; File Search RAG (managed vector store)",

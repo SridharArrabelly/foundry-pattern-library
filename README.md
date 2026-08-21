@@ -44,7 +44,7 @@ flowchart LR
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
-| 2 | `02-agent-service/` | Hosted Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
+| 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
 | 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Governed Web IQ MCP tool (keyless via Foundry connection) + Azure AI Search grounding | ✅ (via skill-forge) |
 | 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
@@ -75,7 +75,7 @@ flowchart LR
   G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
-### 2 · Hosted Agent Service
+### 2 · Agent Service
 **Two ways to run an agent on Foundry**, same Private Banking scenario, both with a
 governable Entra Agent ID — see [`02-agent-service/`](02-agent-service/):
 - **A. Prompt-based** (`create_prompt_agent.py`) — declarative: model + instructions + tools.
@@ -257,7 +257,7 @@ Framework) and the skill chips.
 | Index | Pattern |
 |-------|---------|
 | 1 | Wedge → AI Hub Gateway / Citadel |
-| 2 | Hosted Agent Service |
+| 2 | Agent Service |
 | 3 | Microsoft IQ (Web IQ + Foundry IQ) |
 | 4 | Agentic Loop (Build Skills, Not Agents) |
 | 5 | Multi-agent (Agent Framework) |

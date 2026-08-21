@@ -1,4 +1,4 @@
-# Pattern 2 — Hosted Agent Service
+# Pattern 2 — Agent Service
 
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 

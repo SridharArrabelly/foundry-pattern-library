@@ -5,6 +5,10 @@
 .azure/
 **/.azure/
 
+# ---- Local Foundry tooling state (real project/registry ids — keep out of the repo) ----
+.foundry/
+agent.yaml
+
 # ---- Private working notes (not for the public repo) ----
 plan.md
 
