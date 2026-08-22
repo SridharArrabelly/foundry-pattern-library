@@ -58,6 +58,10 @@ def main():
 
         # 1) LONG-TERM store: per-user scope, 30-day TTL. Foundry manages
         #    extraction / consolidation / retrieval — no vector DB of your own.
+        # NOTE: these two stay on DIRECT deployment names on purpose. The memory
+        # store's extraction/embedding calls are Foundry's own machinery, not your
+        # agent's inference, and the API resolves them against deployments only —
+        # a gateway-qualified name fails with "Chat model deployment ... not found".
         definition = MemoryStoreDefaultDefinition(
             chat_model=MODEL_DEPLOYMENT_NAME,
             embedding_model=EMBEDDING_DEPLOYMENT_NAME,
@@ -86,6 +90,11 @@ def main():
         tool = MemorySearchPreviewTool(
             memory_store_name=STORE, scope=USER, update_delay=1
         )
+        # NOTE: this agent stays on the DIRECT deployment, unlike Patterns 2 and 6.
+        # memory_search is not supported with a BYO (gateway) model — Foundry rejects
+        # it outright: "The following tools are not supported with BYO model:
+        # memory_search". File Search and function tools DO work over BYOM; this one
+        # doesn't. See docs/coexistence.md.
         agent = pc.agents.create_version(
             agent_name=AGENT,
             definition=PromptAgentDefinition(

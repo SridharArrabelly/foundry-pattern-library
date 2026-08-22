@@ -26,8 +26,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from common.foundry import (
-    MODEL_DEPLOYMENT_NAME,
     PROJECT_ENDPOINT,
+    agent_model,
     app_insights_connection_string,
 )
 
@@ -116,10 +116,12 @@ def main():
         openai_client = project.get_openai_client()
 
         # 2) Create (or version) a real Foundry agent — shows in the portal Agents list.
+        #    agent_model() gateway-qualifies the deployment when BYOM is configured, so
+        #    this single call shows up in BOTH the trace and the APIM metrics.
         agent = project.agents.create_version(
             agent_name=AGENT_NAME,
             definition=PromptAgentDefinition(
-                model=MODEL_DEPLOYMENT_NAME,
+                model=agent_model(),
                 instructions=(
                     "You are a private-banking Relationship Manager assistant. Use "
                     "get_client_holdings for portfolio/suitability questions. Be brief."

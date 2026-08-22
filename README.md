@@ -41,20 +41,54 @@ flowchart LR
 
 ## What's inside
 
+Twelve patterns in four groups. Each group answers a different question, and you can enter at
+whichever one the customer is actually asking about. The deck and the suggested run-of-show
+below walk the groups in order; the numbers are just stable folder IDs.
+
+### Control plane — make the gateway the single front door
+
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
-| 2 | `02-hosted-agents/` | Hosted Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Governed Web IQ MCP tool (keyless via Foundry connection) + Azure AI Search grounding | ✅ (via skill-forge) |
-| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
-| 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
-| 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights | ✅ |
-| 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 8 | `08-governance/` | Governance / Prompt Shields | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
-| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+
+### Agent factory — build the agent
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ is the enterprise half; Fabric IQ and Work IQ complete the family | ✅ |
+| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
+
+### Orchestration & interop — make agents work together
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
+| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+
+### Operate & optimise — run it in production
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights — and, with BYOM, the same call in the gateway metrics | ✅ |
+| 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 11 | `11-caching-cost/` | Caching & Cost | Prompt-cache hit on the repeat call (cached tokens) + Model Router downshift, through the gateway | ✅ |
 | 12 | `12-agent365-roi/` | Agent 365 & ROI | Cost ↔ outcome ↔ ROI table from live agent runs; Agent 365 adds org-wide inventory/identity/policy | ✅ |
+
+### The gateway thread
+
+Control isn't one pattern — it runs through three planes, each routed a different way:
+
+| Plane | What calls out | Pattern |
+| --- | --- | --- |
+| **Client** | your app / SDK | 1 — call the gateway URL |
+| **Agent** | Foundry, server-side, mid-run | 2, 6 — **BYOM** model connection |
+| **Tool** | the agent's MCP tools | 3 — the tool published as an APIM MCP API |
+
+Patterns 7 and 10 stay on the direct route on purpose — see
+[`docs/coexistence.md`](docs/coexistence.md) for why.
 
 Every pattern folder has a `TALK-TRACK.md` — the 60-second script + "what it beats in a
 homegrown factory." Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
@@ -75,14 +109,14 @@ flowchart LR
   G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
-### 2 · Hosted Agent Service
+### 2 · Agent Service
 **Two ways to run an agent on Foundry**, same Private Banking scenario, both with a
-governable Entra Agent ID — see [`02-hosted-agents/`](02-hosted-agents/):
-- **A. Prompt-based** (`create_agent.py`) — declarative: model + instructions + tools.
+governable Entra Agent ID — see [`02-agent-service/`](02-agent-service/):
+- **A. Prompt-based** (`create_prompt_agent.py`) — declarative: model + instructions + tools.
   Managed **vector store** (File Search RAG) + a **function tool**, created with the new
   unified SDK (`AIProjectClient.agents.create_version(PromptAgentDefinition(...))`) and
   invoked via the **Responses** API. A first-class *versioned* agent in the portal.
-- **B. Hosted (BYO code)** ([`hosted/`](02-hosted-agents/hosted/)) — your **Agent
+- **B. Hosted (BYO code)** ([`hosted/`](02-agent-service/hosted/)) — your **Agent
   Framework** container, run by Foundry on managed compute, with its own **dedicated**
   Entra Agent ID and endpoint (Responses protocol on `:8088`).
 
@@ -100,17 +134,23 @@ flowchart TB
   FAS --> PT["Portal — chat · logs · versions"]
 ```
 
-### 3 · Microsoft IQ — Web IQ + Foundry IQ
-Web IQ is a **governed MCP tool connection** in Foundry — any client grounds through the
-AI Gateway, keyless (the key stays in the connection, read at runtime via Entra).
+### 3 · Microsoft IQ — the intelligence layer
+Microsoft IQ is the intelligence layer, in four parts: **Web IQ** (live web),
+**Foundry IQ** (enterprise knowledge), **Fabric IQ** (business data and KPIs) and **Work IQ**
+(M365 org context). This pattern runs
+**Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
+caller, injects the Web IQ key from a secret it holds, and meters every tool call, so no Web
+IQ credential ever sits client-side. Foundry IQ is the enterprise half of the same story.
+Fabric IQ and Work IQ complete the family and are dashed below: real layers, not wired up here.
 
 ```mermaid
 flowchart LR
-  AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|governed MCP| GW["Azure AI Gateway"]
-  GW --> W["Web IQ (MCP)<br/>cited live web"]
-  GW --> FI["Foundry IQ<br/>Azure AI Search"]
+  AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|subscription key only| GW["APIM MCP API<br/>authN · quota"]
+  SEC["APIM secret<br/>webiq-api-key"] -. injected inbound .-> GW
+  GW --> W["Web IQ<br/>cited live web"]
+  GW --> FI["Foundry IQ<br/>enterprise knowledge"]
+  GW -.-> FB["Fabric IQ<br/>business data · KPIs"]
   GW -.-> WK["Work IQ<br/>M365 org context"]
-  CX["Foundry connection<br/>WebIQ-MCP-1 · key server-side"] -. keyless read .-> AG
 ```
 
 ### 4 · Agentic Loop — Build Skills, Not Agents
@@ -243,7 +283,7 @@ Run any pattern:
 
 ```powershell
 uv run python 01-wedge/call_gateway.py
-uv run python 02-hosted-agents/create_agent.py
+uv run python 02-agent-service/create_prompt_agent.py
 # ... etc
 ```
 
@@ -254,21 +294,22 @@ Framework) and the skill chips.
 
 ## Suggested run-of-show
 
-| Index | Pattern |
-|-------|---------|
-| 1 | Wedge → AI Hub Gateway / Citadel |
-| 2 | Hosted Agent Service |
-| 3 | Microsoft IQ (Web IQ + Foundry IQ) |
-| 4 | Agentic Loop (Build Skills, Not Agents) |
-| 5 | Multi-agent (Agent Framework) |
-| 6 | Observability & tracing (OpenTelemetry) |
-| 7 | Evaluation → optimization (CI gate) |
-| 8 | Governance / Prompt Shields / Content Safety |
-| 9 | AWS cross-cloud interop (MCP / A2A) |
-| 10 | Memory (Short-term & Long-term) |
-| 11 | Caching & Cost |
-| 12 | Agent 365 & ROI |
-| — | Q & A |
+Sixty minutes, walked group by group — the same order as `foundry-patterns.pptx`.
+
+| Group | # | Pattern | Minutes |
+|-------|---|---------|---------|
+| Control plane | 1 | Wedge → AI Hub Gateway / Citadel | 0–4 |
+| Control plane | 8 | Governance / Prompt Shields / Content Safety | 4–10 |
+| Agent factory | 2 | Agent Service | 10–15 |
+| Agent factory | 3 | Microsoft IQ — the intelligence layer | 15–20 |
+| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) | 20–25 |
+| Agent factory | 10 | Memory (Short-term & Long-term) | 25–29 |
+| Orchestration & interop | 5 | Multi-agent (Agent Framework) | 29–34 |
+| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) | 34–40 |
+| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) | 40–47 |
+| Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–53 |
+| Operate & optimise | 11 | Caching & Cost | 53–57 |
+| Operate & optimise | 12 | Agent 365 & ROI | 57–60 |
 
 ## Live-demo safety
 - **Pre-run every script once** and keep terminal output / portal screenshots as fallback.

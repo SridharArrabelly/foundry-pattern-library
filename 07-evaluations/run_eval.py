@@ -51,6 +51,12 @@ ITEM_SCHEMA = {
 }
 
 # Built-in, agent-grade judges — run server-side in Foundry (no local compute).
+#
+# The judge model stays on the DIRECT deployment, not the APIM/BYOM route used by
+# Patterns 2 and 6 — deliberately. Evaluation is offline QA, not production traffic:
+# metering it against the same gateway budget distorts the usage picture, and a large
+# eval run could trip the very rate limits that protect live agents. Route what
+# represents production; keep test harnesses off that meter. See docs/coexistence.md.
 TESTING_CRITERIA = [
     {
         "type": "azure_ai_evaluator",

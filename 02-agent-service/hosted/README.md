@@ -3,7 +3,7 @@
 Your own **Agent Framework** code, containerized and run by **Foundry Agent Service**.
 The platform pulls the image, provisions compute, gives the agent its **own Entra Agent ID**,
 and exposes a dedicated endpoint. This is the "bring-your-own-code" hosting model — distinct
-from the prompt-based agent in [`../create_agent.py`](../create_agent.py).
+from the prompt-based agent in [`../create_prompt_agent.py`](../create_prompt_agent.py).
 
 ```
 hosted/
@@ -43,7 +43,7 @@ You also need the **Foundry Project Manager** role on the `your-project` project
 **Terminal 1 — start the host:**
 
 ```powershell
-cd 02-hosted-agents/hosted
+cd 02-agent-service/hosted
 copy src\rm-assistant\.env.example src\rm-assistant\.env
 azd ai agent run                                   # starts the host on http://localhost:8088
 ```
@@ -81,7 +81,7 @@ provisioning new infra), then deploy. This uses **code deploy** — a ZIP of `sr
 is built remotely, so **no local Docker is needed**.
 
 ```powershell
-cd 02-hosted-agents/hosted
+cd 02-agent-service/hosted
 
 # One-time: bind the azd env to the existing project by resource id (code deploy, Python 3.13)
 $proj = "/subscriptions/<sub>/resourceGroups/your-resource-group/providers/Microsoft.CognitiveServices/accounts/your-foundry-resource/projects/your-project"
@@ -115,7 +115,7 @@ azd down               # remove the hosted agent (and azd-provisioned resources)
 
 ## The two hosting models — say this out loud
 
-| | Prompt-based agent (`../create_agent.py`) | Hosted agent (this folder) |
+| | Prompt-based agent (`../create_prompt_agent.py`) | Hosted agent (this folder) |
 |---|---|---|
 | You provide | model + instructions + tools (config) | your **code/container** (any framework) |
 | Runtime | Foundry-managed assistant | your process on managed compute |

@@ -5,6 +5,12 @@ clients every pattern needs:
   * project_client()  -> Foundry project client (agents, evals, tracing)
   * gateway_client()  -> an OpenAI-compatible client pointed at the customer's
                           Azure AI Gateway (APIM) — their LiteLLM analogue.
+  * agent_model()     -> model id for Agent Service, gateway-qualified via BYOM
+                          so server-side agent inference also traverses APIM.
+
+Those are two different routing planes: gateway_client() covers traffic your app
+sends, agent_model() covers traffic Foundry sends on your behalf. You need both
+for APIM to be a single control point.
 
 Auth is keyless-first: `az login` + DefaultAzureCredential. Set keys in .env only
 if you prefer key-based auth.
@@ -24,7 +30,7 @@ def env(name: str, default: str | None = None, required: bool = False) -> str | 
     return val
 
 
-# ----- Foundry project (Patterns 2, 6, 7) -----------------------------------
+# ----- Foundry project (Patterns 2, 3, 5, 6, 7, 8, 10, 12) ------------------
 PROJECT_ENDPOINT = env("PROJECT_ENDPOINT")
 MODEL_DEPLOYMENT_NAME = env("MODEL_DEPLOYMENT_NAME", "gpt-5.4-mini")
 
@@ -119,6 +125,39 @@ def gateway_client():
         azure_ad_token_provider=token_provider,
         api_version=GATEWAY_API_VERSION,
     )
+
+
+# ----- BYOM: route AGENT traffic through the gateway (Patterns 2 and 6) -----
+# Pattern 1 puts *client* traffic through APIM simply by calling the gateway URL.
+# That covers one plane only. When Foundry runs a prompt agent server-side,
+# *Foundry* calls the model — your client is not in the loop, so which URL your
+# SDK uses has no bearing on that call.
+#
+# BYOM ("bring your own model") is the supported way to route it: rather than
+# intercepting Foundry's egress, APIM becomes the model's *declared backend*.
+# Create a gateway connection on the Foundry project, then reference the model as
+# "<connection-name>/<model-name>" and agent inference routes through it
+# (measured: 3 invocations -> +3 gateway requests, tools working normally).
+#
+# Create the connection once (see docs/coexistence.md for the full body):
+#   az rest --method put --url "https://management.azure.com/subscriptions/<sub>/
+#     resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<account>/
+#     projects/<project>/connections/apim-mg?api-version=2025-06-01" --body @conn.json
+#
+# Use category "ApiManagement" (keyless, project managed identity) when your APIM
+# is Standard v2 or Premium. On other tiers it fails at *inference* time with a
+# misleading "Connection not found"; use "ModelGateway" (subscription key) there.
+# Allow ~60s for a new connection to propagate before the first call.
+# Leave AGENT_MODEL_CONNECTION blank to keep agents on the direct Foundry route.
+AGENT_MODEL_CONNECTION = env("AGENT_MODEL_CONNECTION")
+
+
+def agent_model(model: str | None = None) -> str:
+    """Model id for Agent Service — gateway-qualified when BYOM is configured."""
+    name = model or MODEL_DEPLOYMENT_NAME
+    if AGENT_MODEL_CONNECTION and "/" not in name:
+        return f"{AGENT_MODEL_CONNECTION}/{name}"
+    return name
 
 
 # ----- Tracing / App Insights (Pattern 6) -----------------------------------

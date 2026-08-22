@@ -4,7 +4,7 @@ Pattern 2 (hosted) — a REAL Foundry *hosted agent*.
 This is YOUR code (Microsoft Agent Framework) packaged in a container and run by
 Foundry Agent Service. The platform pulls the image, provisions compute, assigns the
 agent its own **Entra Agent ID**, and exposes a dedicated endpoint. Compare with the
-prompt-based agent in ../../create_agent.py — same business scenario, two hosting models.
+prompt-based agent in ../../create_prompt_agent.py — same business scenario, two hosting models.
 
 Serves the **Responses** protocol on port 8088 via ResponsesHostServer.
 

@@ -1,4 +1,4 @@
-# Pattern 2 — Hosted Agent Service
+# Pattern 2 — Agent Service
 
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 
@@ -12,7 +12,7 @@
 > And there are **two ways to run an agent on Foundry** — I'll show both."
 
 ## Two hosting models (say this out loud)
-| | **A. Prompt-based agent** (`create_agent.py`) | **B. Hosted agent** (`hosted/`) |
+| | **A. Prompt-based agent** (`create_prompt_agent.py`) | **B. Hosted agent** (`hosted/`) |
 |---|---|---|
 | You provide | model + instructions + tools (config) | your **code / container** (any framework) |
 | Runtime | Foundry-managed assistant | your process on Foundry-managed compute |
@@ -27,7 +27,7 @@
 > hosting plane, or the identity system. Foundry did.**"
 
 ## Demo A — prompt-based agent (declarative, ~60s)
-1. `uv run python 02-hosted-agents/create_agent.py`
+1. `uv run python 02-agent-service/create_prompt_agent.py`
 2. Show the compound answer (File Search cites the policy + the function tool flags C-1290).
 3. Portal: **Agents → rm-assistant-prompt** — a *versioned* agent (v1, v2… on re-run) with
    its **Identity** (Entra Agent ID). Built on the new unified SDK
@@ -37,7 +37,7 @@
 ## Demo B — real hosted agent (your container, ~90s)
 Your Agent Framework code, served on the **Responses** protocol, run *by* Foundry.
 **Already deployed** as `rm-assistant-hosted` (v1, active) — show it two ways:
-1. **Local** (the code): `cd 02-hosted-agents/hosted; azd ai agent run` → host on `:8088`
+1. **Local** (the code): `cd 02-agent-service/hosted; azd ai agent run` → host on `:8088`
    (this **blocks — it's a server**), then in a **second terminal**
    `azd ai agent invoke --local "Is client C-1290 compliant per the suitability policy?"`.
    - No azd ext? `uv run --with agent-framework-foundry --with agent-framework-foundry-hosting --with python-dotenv python src/rm-assistant/main.py`, then POST to `http://localhost:8088/responses` from a 2nd terminal.
