@@ -1,11 +1,13 @@
 # Pattern 2 — Agent Service
 
+**Group:** Agent factory  ·  **Runs 3rd of 12** in the hour (minutes 10–15)
+
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 
 ## The 60-second track
 > "Your homegrown factory has to build the boring-but-hard parts: conversation state,
 > tool orchestration, retries, a vector store for RAG, and an identity for the agent.
-> Foundry's **Hosted Agent Service** ships all of that as a managed primitive — Build
+> Foundry's **Agent Service** ships all of that as a managed primitive — Build
 > 2026 calls it *'the primitive for agents the way containers were for cloud-native
 > apps'*: per-session sandboxes, persistent memory, elastic scale.
 >
@@ -51,19 +53,31 @@ Your Agent Framework code, served on the **Responses** protocol, run *by* Foundr
 > **both** tools (`get_suitability_policy` + `get_client_holdings`) and answers
 > *"No — C-1290 is not compliant; a Conservative client must not hold >70% equities."*
 
+## Keep it on your gateway (BYOM)
+> "One thing a platform team always asks here: *if Foundry runs the agent, does my gateway
+> still see the traffic?* Yes — with **BYOM**. Foundry calls the model server-side, so the
+> URL my client used is irrelevant to that call. Instead APIM becomes the model's **declared
+> backend**: I create a gateway connection on the project and the agent references its model
+> as `<connection>/<model>`. Same agent, same tools — and every inference lands on your
+> gateway, with your policies and your metrics."
+
+Set `AGENT_MODEL_CONNECTION` in `.env` to the connection name; `agent_model()` in
+`common/foundry.py` qualifies the model id. Leave it blank to keep agents on the direct
+Foundry route. Full setup in [`docs/coexistence.md`](../docs/coexistence.md).
+
 ## What it beats in a homegrown factory
 - **Managed threads / memory** — no bespoke state store.
 - **Server-side tool orchestration** + auto function calling.
 - **Managed vector store** for RAG (File Search) — no separate vector DB to run.
 - **Bring-your-own-code hosting** — any framework, containerized, with managed compute
   that deprovisions when idle (no always-on cost).
-- **Entra Agent ID** — governable identity per agent; Bedrock gives you an IAM role.
+- **Entra Agent ID** — governable identity per agent, not a shared cloud IAM role.
 
 ## Money line
 > "You didn't build a runtime, a vector store, a hosting plane, and an identity system.
 > You called an API — or handed us a container."
 
-## AWS contrast
-Bedrock Agents also hosts a runtime — parity on the managed-assistant model. Foundry
-pulls ahead on **bring-your-own-code hosted agents, native MCP tools, a managed vector
-store + enterprise search, and a dedicated Entra Agent ID** (next patterns).
+## Where it pulls ahead
+Most managed agent runtimes cover the declarative assistant model. Foundry adds
+**bring-your-own-code hosted agents, native MCP tools, a managed vector store + enterprise
+search, and a dedicated Entra Agent ID** (next patterns).

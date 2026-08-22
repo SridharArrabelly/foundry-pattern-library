@@ -1,5 +1,7 @@
 # Pattern 9 — Cross-cloud interop — bring your other cloud
 
+**Group:** Orchestration & interop  ·  **Runs 8th of 12** in the hour (minutes 34–40)
+
 **Slide title:** *Coexistence: your other cloud runs an agent. Foundry runs the agent factory. MCP/A2A joins them.*
 
 > **This pattern is a slide + code walkthrough** — no AWS access in this environment. The

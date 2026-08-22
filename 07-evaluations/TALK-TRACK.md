@@ -1,5 +1,7 @@
 # Pattern 7 — Evaluation → optimization
 
+**Group:** Operate & optimise  ·  **Runs 10th of 12** in the hour (minutes 47–53)
+
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 
 ## The 60-second track
@@ -32,6 +34,13 @@
    → the same run with per-row scores and the judge's reasoning.
 3. Show the non-zero exit → point at `eval-ci.yml` (the merge-blocking gate, OIDC, no secrets).
 4. Mention online eval + Agent Optimizer for the production hill-climb.
+
+## Why the judges don't run through the gateway
+Expect this question. The judge model stays on the **direct deployment**, not the APIM/BYOM
+route used by Patterns 2 and 6 — deliberately. Evaluation is offline QA, not production
+traffic: metering it against the same gateway budget distorts the usage picture, and a large
+eval run could trip the very rate limits that protect live agents. Route what represents
+production; keep test harnesses off that meter. See [`docs/coexistence.md`](../docs/coexistence.md).
 
 ## Both places
 The run scores in **Foundry's cloud evaluation service** (`openai_client.evals.create` +

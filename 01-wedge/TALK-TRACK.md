@@ -1,13 +1,15 @@
 # Pattern 1 — The Wedge → AI Hub Gateway / Citadel
 
+**Group:** Control plane  ·  **Runs 1st of 12** in the hour (minutes 0–4)
+
 **Slide title:** *Keep your gateway. Foundry plugs in behind it — and sits above it.*
 
 ## The 60-second track
-> "You built a LiteLLM gateway. Good — that's the right pattern for model access:
-> one OpenAI-compatible endpoint, virtual keys, budgets, routing across providers.
-> Here's the same idea on Azure API Management — my **Azure AI Gateway**. Watch:
-> [run `call_gateway.py`] one call, no app change, and it's hitting a Foundry-served
-> model right next to your Bedrock models.
+> "You built a gateway — LiteLLM, APIM, or your own. Good: that's the right pattern
+> for model access — one OpenAI-compatible endpoint, virtual keys, budgets, routing
+> across providers. Here's the same idea on Azure API Management — my **Azure AI
+> Gateway**. Watch: [run `call_gateway.py`] one call, no app change, and it's hitting
+> a Foundry-served model right next to the models you already run.
 >
 > But a gateway only solves **model access**. It doesn't give you hosted agents,
 > grounding, evaluation, tracing, identity or safety. That's the **factory** — and
@@ -16,9 +18,16 @@
 > by Foundry + APIM*, with a universal AI registry, observability and governance built in."
 
 ## What it beats in a homegrown factory
-- Their LiteLLM gateway stays; nothing is ripped out. Zero-risk entry point.
+- Their gateway stays; nothing is ripped out. Zero-risk entry point.
 - Reframes the gateway as **commodity** and the factory (identity, eval, tracing,
   governance) as the **differentiation** — which their platform lacks.
+
+## The gateway thread (sets up Patterns 2 and 6)
+This call is *client* traffic — your code chose the gateway URL, so it goes through APIM.
+That's one plane. When Foundry runs an agent server-side, **Foundry** calls the model and
+your client isn't in the loop. **BYOM** is the supported way to route that too: APIM becomes
+the model's declared backend, so agent inference lands on the same gateway. You'll see it in
+Patterns 2 and 6.
 
 ## Money line
 > "The gateway gives you model access. Foundry gives you the agent factory."
@@ -45,7 +54,7 @@ touches the client. This is the governance story a regulated shop can't get from
   backend is reached via APIM's managed identity.
 - Reference: **aka.ms/ai-hub-gateway** and **github.com/Azure/AI-Landing-Zones** (Citadel).
 
-## Coexistence note (for the AWS room)
-Their LiteLLM gateway already fronts Bedrock. Adding Foundry is one more provider entry —
-same pattern as this call. New agentic workloads land on Foundry for the factory depth;
-existing Bedrock traffic is untouched.
+## Coexistence note
+Their gateway already fronts whatever they run today. Adding Foundry is one more provider
+entry — same pattern as this call. New agentic workloads land on Foundry for the factory
+depth; existing traffic is untouched. Pattern 9 shows the cross-cloud half.
