@@ -57,7 +57,7 @@ is actually asking about.
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ — the grounding layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ is the enterprise half; Fabric IQ and Work IQ complete the family | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ is the enterprise half; Fabric IQ and Work IQ complete the family | ✅ |
 | 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
@@ -134,9 +134,10 @@ flowchart TB
   FAS --> PT["Portal — chat · logs · versions"]
 ```
 
-### 3 · Microsoft IQ — the grounding layer
-Microsoft IQ is four layers: **Web IQ** (live web), **Foundry IQ** (enterprise knowledge),
-**Fabric IQ** (business data and KPIs) and **Work IQ** (M365 org context). This pattern runs
+### 3 · Microsoft IQ — the intelligence layer
+Microsoft IQ is Microsoft's enterprise intelligence layer, in four parts: **Web IQ** (live web),
+**Foundry IQ** (enterprise knowledge), **Fabric IQ** (business data and KPIs) and **Work IQ**
+(M365 org context). This pattern runs
 **Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
 caller, injects the Web IQ key from a secret it holds, and meters every tool call, so no Web
 IQ credential ever sits client-side. Foundry IQ is the enterprise half of the same story.
@@ -297,7 +298,7 @@ Framework) and the skill chips.
 |-------|---------|
 | 1 | Wedge → AI Hub Gateway / Citadel |
 | 2 | Agent Service |
-| 3 | Microsoft IQ — the grounding layer |
+| 3 | Microsoft IQ — the intelligence layer |
 | 4 | Agentic Loop (Build Skills, Not Agents) |
 | 5 | Multi-agent (Agent Framework) |
 | 6 | Observability & tracing (OpenTelemetry) |

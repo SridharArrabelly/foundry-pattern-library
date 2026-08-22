@@ -1,4 +1,4 @@
-# Pattern 3 — Microsoft IQ: the grounding layer
+# Pattern 3 — Microsoft IQ: the intelligence layer
 
 **Slide title:** *Grounding that's truly yours — and every tool call governed.*
 

@@ -438,7 +438,7 @@ PATTERNS = [
      ["Prompt-based: model + instructions + tools; File Search RAG (managed vector store)",
       "Hosted: your container on Foundry-managed compute \u2014 any framework",
       "Entra Agent ID \u2014 governable identity per agent, not a shared IAM role"], dia2),
-    (3, "Microsoft IQ \u2014 The Grounding Layer",
+    (3, "Microsoft IQ \u2014 The Intelligence Layer",
      "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise.",
      "Web IQ published as OUR OWN MCP API on APIM \u2014 no key, 401; valid key, 200; past the limit, 429.",
      ["Tool calls governed like model calls \u2014 same gateway, same control point",
