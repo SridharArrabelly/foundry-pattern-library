@@ -77,10 +77,23 @@ Gotchas worth knowing up front:
   managed identity — but it requires APIM **Standard v2 or Premium**. On other tiers it is
   accepted at create time and then fails at *inference* time with a misleading
   `Connection '<name>' not found`. `ModelGateway` works on any tier, at the cost of a static key.
-- **Prompt agents only**, and tools still work — File Search and function calling both run fine
-  through a BYOM model.
+- **Tools mostly work — with one known exception.** File Search and function calling both run
+  fine through a BYOM model. `memory_search` does not: Foundry rejects it outright with *"The
+  following tools are not supported with BYO model: memory_search"*, so Pattern 10 stays direct.
 - **Allow ~60s to propagate.** Calls made seconds after creating the connection can fail with the
   same "not found" error.
+
+### What deliberately stays direct
+
+Routing everything through the gateway is not the goal — routing the traffic that *represents
+production* is. Two patterns opt out on purpose:
+
+| Pattern | Why it stays on the direct deployment |
+| --- | --- |
+| **7 — Evaluations** | The judge model is offline QA, not production traffic. Metering it against the same token budget distorts your usage picture and lets a large eval run trip the rate limits that protect live agents. |
+| **10 — Memory** | `memory_search` is incompatible with BYOM (above). The store's own extraction/embedding calls are also Foundry-internal machinery and resolve against deployments only. |
+
+Being explicit about the exceptions is what makes the rule credible.
 
 ## Governing tools, not just models
 
