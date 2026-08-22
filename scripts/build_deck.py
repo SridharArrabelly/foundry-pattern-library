@@ -188,17 +188,17 @@ def dia2(s):
 
 
 def dia3(s):
-    conn = node(s, NB(2.2, 4.75, 3.0, 0.8), "Foundry connection: WebIQ-MCP-1", "key stored server-side", "ghost")
+    secret = node(s, NB(5.0, 4.75, 3.2, 0.8), "APIM secret: webiq-api-key", "injected inbound", "ghost")
     agent = node(s, NB(2.5, 3.3, 2.4, 0.95), "MCP client", "Foundry \u00b7 Copilot \u00b7 Bedrock", "dark")
-    gw = node(s, NB(5.3, 3.3, 2.0, 0.95), "Azure AI Gateway", "governed MCP", "primary")
+    gw = node(s, NB(5.3, 3.3, 2.0, 0.95), "APIM MCP API", "authN \u00b7 quota", "primary")
     web = node(s, NB(8.0, 2.4, 4.0, 0.8), "Web IQ (MCP) — cited web", None, "neutral")
     fiq = node(s, NB(8.0, 3.45, 4.0, 0.8), "Foundry IQ — Azure AI Search", None, "neutral")
     wiq = node(s, NB(8.0, 4.5, 4.0, 0.8), "Work IQ — M365 org context", None, "ghost")
-    edge(s, agent, "r", gw, "l")
+    edge(s, agent, "r", gw, "l", "sub key only")
     edge(s, gw, "r", web, "l")
     edge(s, gw, "r", fiq, "l")
     edge(s, gw, "r", wiq, "l", dashed=True)
-    edge(s, conn, "t", agent, "b", "keyless read", dashed=True)
+    edge(s, secret, "t", gw, "b", dashed=True)
 
 
 def dia4(s):
@@ -376,15 +376,16 @@ def map_slide(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _fill(s, 0, 0, W, Inches(1.2), DARK)
     t = _box(s, Inches(0.6), Inches(0.28), Inches(12), Inches(0.8))
-    _run(t.text_frame.paragraphs[0], "Run-of-show — 60 minutes, 1 slide + 1 demo each", 30, WHITE, bold=True)
+    _run(t.text_frame.paragraphs[0], "Run-of-show \u2014 four groups, 60 minutes", 30, WHITE, bold=True)
     rows = [
-        "0\u20135    1  Wedge \u2192 AI Hub Gateway / Citadel",
-        "5\u201315   2  Agent Service   \u00b7   3  Microsoft IQ (Web IQ + Foundry IQ)",
-        "15\u201325  4  Agentic Loop (Build Skills, Not Agents)   \u00b7   5  Multi-agent (Agent Framework)",
-        "25\u201333  6  Observability & tracing (OpenTelemetry)",
-        "33\u201341  7  Evaluation \u2192 optimization (CI gate)",
-        "41\u201350  8  Governance / Prompt Shields / Content Safety",
-        "50\u201360  9  AWS cross-cloud interop (MCP / A2A)  +  Q&A",
+        "CONTROL PLANE \u2014 make the gateway the single front door",
+        "     1  Wedge \u2192 AI Hub Gateway / Citadel  (0\u20135)      \u00b7      8  Governance / Prompt Shields  (41\u201350)",
+        "AGENT FACTORY \u2014 build the agent",
+        "     2  Agent Service  (5\u201310)      \u00b7      3  Microsoft IQ  (10\u201315)      \u00b7      4  Agentic Loop  (15\u201320)",
+        "ORCHESTRATION & INTEROP \u2014 make agents work together",
+        "     5  Multi-agent (Agent Framework)  (20\u201325)      \u00b7      9  AWS cross-cloud, MCP / A2A  (50\u201360)",
+        "OPERATE & OPTIMISE \u2014 run it in production",
+        "     6  Observability & tracing  (25\u201333)      \u00b7      7  Evaluation \u2192 optimization  (33\u201341)",
     ]
     body = _box(s, Inches(0.8), Inches(1.7), Inches(11.8), Inches(5.2))
     tf = body.text_frame
@@ -392,8 +393,9 @@ def map_slide(prs):
     for r in rows:
         p = tf.paragraphs[0] if first else tf.add_paragraph()
         first = False
-        p.space_after = Pt(12)
-        _run(p, r, 18, DARK)
+        is_group = not r.startswith("  ")
+        p.space_after = Pt(4) if is_group else Pt(16)
+        _run(p, r, 16 if is_group else 17, BLUE if is_group else DARK, bold=is_group)
 
 
 def close_slide(prs):
@@ -433,9 +435,9 @@ PATTERNS = [
       "Entra Agent ID \u2014 governable identity per agent, not a shared IAM role"], dia2),
     (3, "Microsoft IQ \u2014 Web IQ + Foundry IQ",
      "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise.",
-     "Web IQ is a governed MCP tool connection in Foundry; any client grounds through it, keyless.",
-     ["Governed MCP grounding \u2014 one AI-Gateway endpoint, any agent/model",
-      "Keyless: key stays in the Foundry connection, read at runtime (Entra)",
+     "Web IQ published as OUR OWN MCP API on APIM \u2014 no key, 401; valid key, 200; past the limit, 429.",
+     ["Tool calls governed like model calls \u2014 same gateway, same control point",
+      "Key custody sits in the gateway \u2014 no Web IQ credential client-side",
       "Org context (Work IQ / M365) \u2014 a moat AWS can't match"], dia3),
     (4, "Agentic Loop \u2014 Build Skills, Not Agents",
      "Don't orchestrate fifty agents. Give one good loop the right skills \u2014 and let it reason.",

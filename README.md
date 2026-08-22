@@ -41,20 +41,54 @@ flowchart LR
 
 ## What's inside
 
+Twelve patterns in four groups. The numbers are the run order; the groups are how to *think*
+about them — each answers a different question, and you can enter at whichever one the customer
+is actually asking about.
+
+### Control plane — make the gateway the single front door
+
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
-| 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Governed Web IQ MCP tool (keyless via Foundry connection) + Azure AI Search grounding | ✅ (via skill-forge) |
-| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
-| 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
-| 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights | ✅ |
-| 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 8 | `08-governance/` | Governance / Prompt Shields | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
-| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+
+### Agent factory — build the agent
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call — plus Azure AI Search grounding | ✅ |
+| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
+
+### Orchestration & interop — make agents work together
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
+| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+
+### Operate & optimise — run it in production
+
+| # | Folder | Pattern | Live demo move | Runnable? |
+|---|--------|---------|----------------|-----------|
+| 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights — and, with BYOM, the same call in the gateway metrics | ✅ |
+| 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
 | 11 | `11-caching-cost/` | Caching & Cost | Prompt-cache hit on the repeat call (cached tokens) + Model Router downshift, through the gateway | ✅ |
 | 12 | `12-agent365-roi/` | Agent 365 & ROI | Cost ↔ outcome ↔ ROI table from live agent runs; Agent 365 adds org-wide inventory/identity/policy | ✅ |
+
+### The gateway thread
+
+Control isn't one pattern — it runs through three planes, each routed a different way:
+
+| Plane | What calls out | Pattern |
+| --- | --- | --- |
+| **Client** | your app / SDK | 1 — call the gateway URL |
+| **Agent** | Foundry, server-side, mid-run | 2, 6 — **BYOM** model connection |
+| **Tool** | the agent's MCP tools | 3 — the tool published as an APIM MCP API |
+
+Patterns 7 and 10 stay on the direct route on purpose — see
+[`docs/coexistence.md`](docs/coexistence.md) for why.
 
 Every pattern folder has a `TALK-TRACK.md` — the 60-second script + "what it beats in a
 homegrown factory." Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
