@@ -57,7 +57,7 @@ is actually asking about.
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ (Web IQ + Foundry IQ) | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call — plus Azure AI Search grounding | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ — the grounding layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ is the enterprise half; Fabric IQ and Work IQ complete the family | ✅ |
 | 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
@@ -134,17 +134,22 @@ flowchart TB
   FAS --> PT["Portal — chat · logs · versions"]
 ```
 
-### 3 · Microsoft IQ — Web IQ + Foundry IQ
-Web IQ is a **governed MCP tool connection** in Foundry — any client grounds through the
-AI Gateway, keyless (the key stays in the connection, read at runtime via Entra).
+### 3 · Microsoft IQ — the grounding layer
+Microsoft IQ is four layers: **Web IQ** (live web), **Foundry IQ** (enterprise knowledge),
+**Fabric IQ** (business data and KPIs) and **Work IQ** (M365 org context). This pattern runs
+**Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
+caller, injects the Web IQ key from a secret it holds, and meters every tool call, so no Web
+IQ credential ever sits client-side. Foundry IQ is the enterprise half of the same story.
+Fabric IQ and Work IQ complete the family and are dashed below: real layers, not wired up here.
 
 ```mermaid
 flowchart LR
-  AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|governed MCP| GW["Azure AI Gateway"]
-  GW --> W["Web IQ (MCP)<br/>cited live web"]
-  GW --> FI["Foundry IQ<br/>Azure AI Search"]
+  AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|subscription key only| GW["APIM MCP API<br/>authN · quota"]
+  SEC["APIM secret<br/>webiq-api-key"] -. injected inbound .-> GW
+  GW --> W["Web IQ<br/>cited live web"]
+  GW --> FI["Foundry IQ<br/>enterprise knowledge"]
+  GW -.-> FB["Fabric IQ<br/>business data · KPIs"]
   GW -.-> WK["Work IQ<br/>M365 org context"]
-  CX["Foundry connection<br/>WebIQ-MCP-1 · key server-side"] -. keyless read .-> AG
 ```
 
 ### 4 · Agentic Loop — Build Skills, Not Agents
@@ -292,7 +297,7 @@ Framework) and the skill chips.
 |-------|---------|
 | 1 | Wedge → AI Hub Gateway / Citadel |
 | 2 | Agent Service |
-| 3 | Microsoft IQ (Web IQ + Foundry IQ) |
+| 3 | Microsoft IQ — the grounding layer |
 | 4 | Agentic Loop (Build Skills, Not Agents) |
 | 5 | Multi-agent (Agent Framework) |
 | 6 | Observability & tracing (OpenTelemetry) |

@@ -31,7 +31,7 @@ TASK = (
 
 
 def build_client():
-    """Agent Framework chat client on the APIM gateway (subscription key by default)."""
+    """Agent Framework chat client on the APIM gateway (keyless Entra by default)."""
     from agent_framework.openai import OpenAIChatClient
 
     endpoint = GATEWAY_ENDPOINT.rstrip("/")

@@ -1,47 +1,64 @@
-# Pattern 3 — Microsoft IQ (Web IQ + Foundry IQ)
+# Pattern 3 — Microsoft IQ: the grounding layer
 
-**Slide title:** *Grounding that's truly yours — the live web AND your enterprise, over MCP.*
+**Slide title:** *Grounding that's truly yours — and every tool call governed.*
 
 ## The 60-second track
-> "An agent is only as good as its context. Microsoft's answer is the **IQ platform** —
-> a context layer, not a single feature:
-> - **Web IQ** — AI-first web grounding, **MCP-native**, ~**2.5× faster** than the next
->   best alternative. It's registered as a **governed MCP tool connection** in Foundry
->   ("WebIQ-MCP-1") — the key stays server-side, traffic rides the **AI Gateway**. Watch a
->   client pull live, cited regulatory context — **keyless** (the app reads the connection
->   at runtime via Entra, no secret in code). [run `web_iq_mcp.py`]
-> - **Foundry IQ** — retrieval planning across **enterprise + web**. Here it's **Azure AI
->   Search** over our wealth product/benefits corpus, exposed as the `rag-search` skill in
->   skill-forge. [switch to skill-forge, ask a product question → cited enterprise answer]
-> - (And **Work IQ** — the M365 graph of work — for when the agent needs to know *how your
->   org actually operates*: people, docs, meetings. APIs GA.)
+> "An agent is only as good as its context. Microsoft's answer is **Microsoft IQ** — four
+> layers of grounding, not a single feature:
+> - **Web IQ** — AI-first web grounding, **MCP-native**, ~**2.5× faster** than the next best
+>   alternative. This is the one we run live.
+> - **Foundry IQ** — enterprise knowledge (policies, contracts, product docs) with retrieval
+>   planning over Azure AI Search, instead of hand-wired RAG.
+> - **Fabric IQ** — your business data: KPIs, semantic models and analytics over OneLake. For
+>   a bank that's AUM, risk metrics and portfolio performance as *governed* context.
+> - **Work IQ** — the M365 graph of work: people, documents, meetings.
 >
-> AWS can front the web and a vector store. It cannot ground agents in **your Microsoft 365
-> graph of work**, and it doesn't ship a single MCP-native context plane across web +
-> enterprise."
+> Now the part that matters for a regulated shop. An agent doesn't just call **models** — it
+> calls **tools**, and most gateways govern only the first. So we published Web IQ as **our
+> own MCP API on API Management**. The gateway authenticates the caller, holds the Web IQ key
+> as a secret and injects it upstream, and meters every call *before* it proxies.
+>
+> The client I'm about to run carries **no Web IQ credential at all**. [run `microsoft_iq.py`]
+>
+> AWS can front the web and a vector store. It cannot ground agents in your **Microsoft 365
+> graph of work** or your **Fabric business model**, and it doesn't ship a single MCP-native
+> context plane across all four."
 
 ## What it beats in a homegrown factory
-- **MCP-native grounding** — one governed endpoint, any agent/model calls it.
+- **Tool calls governed like model calls** — same gateway, same control point, one audit trail.
+- **Key custody in the gateway** — the backend credential never reaches a client or a `.env`.
 - **Retrieval planning** across sources (Foundry IQ) instead of hand-wired RAG.
-- **Org-context (Work IQ)** — a moat AWS structurally can't match.
+- **Org + business context** (Work IQ, Fabric IQ) — a moat AWS structurally can't match.
 
 ## Money line
-> "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise. Work IQ
-> grounds you in how your company actually works."
+> "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise. And every one
+> of those tool calls goes through the same gateway as your model calls."
 
 ## Demo steps
-1. **Web IQ:** `uv run python 03-microsoft-iq/web_iq_mcp.py` — the script reads the governed
-   **WebIQ-MCP-1** tool connection from Foundry (keyless), opens an MCP session through the
-   AI Gateway, lists the Web IQ tools, and runs one cited web query.
-2. **Foundry IQ:** in `../skill-forge`, `uv run skill-forge`, pick the `rag-search` skill,
-   ask a product question → cited answer from Azure AI Search.
-3. Note the **same governed MCP tool** is callable from Foundry, Copilot, or a Bedrock agent.
+1. `uv run python 03-microsoft-iq/microsoft_iq.py` — resolves the **APIM MCP route**, opens an
+   MCP session, lists the Web IQ tools, and runs one cited regulatory query.
+2. Point at the header line: the only credential sent is an **APIM subscription key**.
+3. Show the governance evidence (measured on this APIM):
 
-## Why it's registered in Foundry (not hand-wired)
-The MCP endpoint + key live once in the Foundry **tool connection** (Tools > WebIQ-MCP-1),
-governed by the AI Gateway. Apps never hold the key — they read it at runtime with their
-Entra identity. That's the bank-friendly story: one governed grounding endpoint, keyless.
+   | Call | Result |
+   |------|--------|
+   | No subscription key | **401** |
+   | Bogus key | **401** |
+   | Valid key (client sends no Web IQ key) | **200** — gateway injected the credential |
+   | Past the rate limit | **429** |
+
+4. Note the **same governed MCP endpoint** is callable from Foundry, Copilot, or a Bedrock agent.
+
+## Why we hand-built the MCP API
+Foundry can auto-publish MCP tools through its managed gateway, but then the policy surface
+isn't yours. Hand-authoring the API on APIM gives us the secret named value, the rate-limit
+policy and the subscription model — the things a bank's platform team actually needs to own.
+Setup (backend + API + policy) is in [`docs/coexistence.md`](../docs/coexistence.md).
+
+**One caveat:** MCP streams over SSE, so a policy must never read `context.Response.Body` —
+that forces buffering and breaks the stream. Control is inbound-side (auth, quota,
+allow-listing), not response inspection.
 
 ## If the MCP call won't connect live
-Fall back to skill-forge's **web-grounding** skill (WebIQ SDK) — same Web IQ, no MCP
-transport to debug on stage.
+Clear `WEBIQ_MCP_URL` to fall back to the Foundry-managed tool connection
+(`WEBIQ_CONNECTION_NAME`), which keeps the key server-side but without our policy layer.

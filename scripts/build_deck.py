@@ -188,15 +188,20 @@ def dia2(s):
 
 
 def dia3(s):
-    secret = node(s, NB(5.0, 4.75, 3.2, 0.8), "APIM secret: webiq-api-key", "injected inbound", "ghost")
-    agent = node(s, NB(2.5, 3.3, 2.4, 0.95), "MCP client", "Foundry \u00b7 Copilot \u00b7 Bedrock", "dark")
-    gw = node(s, NB(5.3, 3.3, 2.0, 0.95), "APIM MCP API", "authN \u00b7 quota", "primary")
-    web = node(s, NB(8.0, 2.4, 4.0, 0.8), "Web IQ (MCP) — cited web", None, "neutral")
-    fiq = node(s, NB(8.0, 3.45, 4.0, 0.8), "Foundry IQ — Azure AI Search", None, "neutral")
-    wiq = node(s, NB(8.0, 4.5, 4.0, 0.8), "Work IQ — M365 org context", None, "ghost")
+    # The IQ family is four layers. Web IQ runs live here and Foundry IQ is the
+    # enterprise half of the same story, so both are solid. Fabric IQ and Work IQ
+    # are dashed: real parts of the family, not wired up in this demo.
+    secret = node(s, NB(3.5, 4.78, 2.9, 0.68), "APIM secret: webiq-api-key", "injected inbound", "ghost")
+    agent = node(s, NB(2.4, 3.3, 2.1, 0.95), "MCP client", "Foundry \u00b7 Copilot \u00b7 Bedrock", "dark")
+    gw = node(s, NB(6.2, 3.3, 2.0, 0.95), "APIM MCP API", "authN \u00b7 quota", "primary")
+    web = node(s, NB(8.5, 2.30, 3.9, 0.62), "Web IQ \u2014 cited live web", None, "neutral")
+    fiq = node(s, NB(8.5, 3.10, 3.9, 0.62), "Foundry IQ \u2014 enterprise knowledge", None, "neutral")
+    fab = node(s, NB(8.5, 3.90, 3.9, 0.62), "Fabric IQ \u2014 business data \u00b7 KPIs", None, "ghost")
+    wiq = node(s, NB(8.5, 4.70, 3.9, 0.62), "Work IQ \u2014 M365 org context", None, "ghost")
     edge(s, agent, "r", gw, "l", "sub key only")
     edge(s, gw, "r", web, "l")
     edge(s, gw, "r", fiq, "l")
+    edge(s, gw, "r", fab, "l", dashed=True)
     edge(s, gw, "r", wiq, "l", dashed=True)
     edge(s, secret, "t", gw, "b", dashed=True)
 
@@ -433,12 +438,12 @@ PATTERNS = [
      ["Prompt-based: model + instructions + tools; File Search RAG (managed vector store)",
       "Hosted: your container on Foundry-managed compute \u2014 any framework",
       "Entra Agent ID \u2014 governable identity per agent, not a shared IAM role"], dia2),
-    (3, "Microsoft IQ \u2014 Web IQ + Foundry IQ",
+    (3, "Microsoft IQ \u2014 The Grounding Layer",
      "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise.",
      "Web IQ published as OUR OWN MCP API on APIM \u2014 no key, 401; valid key, 200; past the limit, 429.",
      ["Tool calls governed like model calls \u2014 same gateway, same control point",
       "Key custody sits in the gateway \u2014 no Web IQ credential client-side",
-      "Org context (Work IQ / M365) \u2014 a moat AWS can't match"], dia3),
+      "Four layers: web, enterprise, business data, org context \u2014 a moat AWS can't match"], dia3),
     (4, "Agentic Loop \u2014 Build Skills, Not Agents",
      "Don't orchestrate fifty agents. Give one good loop the right skills \u2014 and let it reason.",
      "One Plan/Act/Observe loop, N skills-as-folders; engine swapped to Copilot SDK BYOM.",

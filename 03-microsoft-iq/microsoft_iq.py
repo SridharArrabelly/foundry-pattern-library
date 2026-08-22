@@ -1,8 +1,17 @@
 """
-Pattern 3 — Microsoft IQ: Web IQ as a governed MCP tool behind APIM.
+Pattern 3 — Microsoft IQ: the grounding layer, governed by the gateway.
 
-Web IQ is Microsoft's AI-first web-grounding stack: model-agnostic, MCP-native,
-~2.5x faster than the next best alternative (Build 2026).
+Microsoft IQ is four layers of grounding:
+
+  * WEB IQ     — AI-first web grounding: model-agnostic, MCP-native, ~2.5x faster
+                 than the next best alternative (Build 2026).
+  * FOUNDRY IQ — enterprise knowledge (policies, documents, contracts) with
+                 retrieval planning over Azure AI Search.
+  * FABRIC IQ  — business data: KPIs, semantic models and analytics over OneLake.
+  * WORK IQ    — M365 org context: how your people actually work.
+
+This script runs the WEB IQ half live. The other three are the surrounding story
+(see TALK-TRACK.md); only Web IQ is wired up here.
 
 The pattern is *tool governance*. Models are only half of what an agent calls --
 it also calls tools, and those calls deserve the same control point. So Web IQ is
@@ -27,12 +36,9 @@ Here we consume it directly:
   2. Open an MCP (streamable HTTP) session, list the Web IQ tools, and run one
      grounded web query for a private-banking research question — with citations.
 
-For the *Foundry IQ* half (enterprise grounding over Azure AI Search) run skill-forge's
-`rag-search` skill — see TALK-TRACK.md.
-
 Verified against azure-ai-projects 2.3.0 + mcp 1.28.1 (keyless, DefaultAzureCredential).
 
-Run:  uv run python 03-microsoft-iq/web_iq_mcp.py
+Run:  uv run python 03-microsoft-iq/microsoft_iq.py
 """
 import asyncio
 import os
@@ -123,8 +129,9 @@ async def main():
     print("point. Web IQ is published as our own MCP API on APIM: the gateway authenticates")
     print("the caller, injects the Web IQ key from a secret it holds, and meters every call")
     print("(401 without a key, 429 past the limit). The client you just ran carries no Web IQ")
-    print("credential at all. Pair Web IQ (web) with Foundry IQ (Azure AI Search) to plan")
-    print("retrieval across web + enterprise — both governed by the same gateway.")
+    print("credential at all. Web IQ is one of four IQ layers — Foundry IQ (enterprise")
+    print("knowledge), Fabric IQ (business data) and Work IQ (org context) ground the same")
+    print("agent through the same gateway. That breadth is what AWS can't match.")
 
 
 if __name__ == "__main__":
@@ -132,5 +139,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except Exception as e:
         print(f"[connection issue] {e}")
-        print("Check PROJECT_ENDPOINT and that the 'WebIQ-MCP-1' tool connection exists in")
-        print("your Foundry project (Tools). Override the name with WEBIQ_CONNECTION_NAME.")
+        print("Preferred route: set WEBIQ_MCP_URL + WEBIQ_APIM_KEY to our APIM MCP API")
+        print("(setup in docs/coexistence.md). Without them this falls back to the Foundry")
+        print("tool connection, which needs PROJECT_ENDPOINT and WEBIQ_CONNECTION_NAME.")

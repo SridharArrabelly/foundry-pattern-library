@@ -30,7 +30,7 @@ def env(name: str, default: str | None = None, required: bool = False) -> str | 
     return val
 
 
-# ----- Foundry project (Patterns 2, 6, 7) -----------------------------------
+# ----- Foundry project (Patterns 2, 3, 5, 6, 7, 8, 10, 12) ------------------
 PROJECT_ENDPOINT = env("PROJECT_ENDPOINT")
 MODEL_DEPLOYMENT_NAME = env("MODEL_DEPLOYMENT_NAME", "gpt-5.4-mini")
 
@@ -127,7 +127,7 @@ def gateway_client():
     )
 
 
-# ----- BYOM: route AGENT traffic through the gateway (Pattern 2) ------------
+# ----- BYOM: route AGENT traffic through the gateway (Patterns 2 and 6) -----
 # Pattern 1 puts *client* traffic through APIM simply by calling the gateway URL.
 # That covers one plane only. When Foundry runs a prompt agent server-side,
 # *Foundry* calls the model — your client is not in the loop, so which URL your

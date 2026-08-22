@@ -165,7 +165,8 @@ The policy that does the work:
 
 - **Managed agent runtime** — prompt-based or BYO-code hosted agents, both with a first-class
   **Entra Agent ID** (conditional access, M365 tenant identity).
-- **Grounding** — Microsoft IQ (Web IQ + Foundry IQ + Work IQ) for world *and* enterprise context.
+- **Grounding** — Microsoft IQ: Web IQ (live web), Foundry IQ (enterprise knowledge), Fabric IQ
+  (business data and KPIs) and Work IQ (M365 org context).
 - **Evaluation** — agent-grade evaluators (groundedness, tool-call accuracy, intent), offline + online.
 - **Tracing** — OpenTelemetry to Azure Monitor *or your existing stack* (Datadog, Grafana).
 - **Governance & FinOps** — Purview DSPM for AI, plus Agent 365 org-wide inventory and
