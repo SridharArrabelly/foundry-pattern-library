@@ -41,9 +41,9 @@ flowchart LR
 
 ## What's inside
 
-Twelve patterns in four groups. The numbers are the run order; the groups are how to *think*
-about them — each answers a different question, and you can enter at whichever one the customer
-is actually asking about.
+Twelve patterns in four groups. Each group answers a different question, and you can enter at
+whichever one the customer is actually asking about. The deck and the suggested run-of-show
+below walk the groups in order; the numbers are just stable folder IDs.
 
 ### Control plane — make the gateway the single front door
 
@@ -294,21 +294,22 @@ Framework) and the skill chips.
 
 ## Suggested run-of-show
 
-| Index | Pattern |
-|-------|---------|
-| 1 | Wedge → AI Hub Gateway / Citadel |
-| 2 | Agent Service |
-| 3 | Microsoft IQ — the intelligence layer |
-| 4 | Agentic Loop (Build Skills, Not Agents) |
-| 5 | Multi-agent (Agent Framework) |
-| 6 | Observability & tracing (OpenTelemetry) |
-| 7 | Evaluation → optimization (CI gate) |
-| 8 | Governance / Prompt Shields / Content Safety |
-| 9 | AWS cross-cloud interop (MCP / A2A) |
-| 10 | Memory (Short-term & Long-term) |
-| 11 | Caching & Cost |
-| 12 | Agent 365 & ROI |
-| — | Q & A |
+Sixty minutes, walked group by group — the same order as `foundry-patterns.pptx`.
+
+| Group | # | Pattern | Minutes |
+|-------|---|---------|---------|
+| Control plane | 1 | Wedge → AI Hub Gateway / Citadel | 0–4 |
+| Control plane | 8 | Governance / Prompt Shields / Content Safety | 4–10 |
+| Agent factory | 2 | Agent Service | 10–15 |
+| Agent factory | 3 | Microsoft IQ — the intelligence layer | 15–20 |
+| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) | 20–25 |
+| Agent factory | 10 | Memory (Short-term & Long-term) | 25–29 |
+| Orchestration & interop | 5 | Multi-agent (Agent Framework) | 29–34 |
+| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) | 34–40 |
+| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) | 40–47 |
+| Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–53 |
+| Operate & optimise | 11 | Caching & Cost | 53–57 |
+| Operate & optimise | 12 | Agent 365 & ROI | 57–60 |
 
 ## Live-demo safety
 - **Pre-run every script once** and keep terminal output / portal screenshots as fallback.

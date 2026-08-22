@@ -287,6 +287,38 @@ def dia9(s):
     edge(s, mcp, "r", ba, "l", "A2A", dashed=True)
 
 
+def dia10(s):
+    u = node(s, NB(2.4, 3.45, 1.9, 0.85), "RM / client", None, "neutral")
+    ag = node(s, NB(4.6, 3.3, 2.8, 1.05), "Foundry agent", "MemorySearchPreviewTool", "dark")
+    st = node(s, NB(9.1, 2.25, 3.3, 0.8), "Conversation", "short-term \u00b7 one session", "primary")
+    lt = node(s, NB(9.1, 3.9, 3.3, 1.0), "Memory Store", "long-term \u00b7 per-user \u00b7 TTL", "accent")
+    emb = node(s, NB(9.1, 5.0, 3.3, 0.5), "text-embedding-3-small", None, "ghost")
+    edge(s, u, "r", ag, "l")
+    edge(s, ag, "r", st, "l", "same session")
+    edge(s, ag, "r", lt, "l", "across sessions")
+    edge(s, lt, "b", emb, "t", dashed=True)
+
+
+def dia11(s):
+    app = node(s, NB(2.4, 3.45, 2.0, 0.85), "App", "Entra token", "neutral")
+    gw = node(s, NB(4.8, 3.25, 2.8, 1.15), "Azure AI Gateway (APIM)", "semantic cache \u2014 paraphrases", "dark")
+    mr = node(s, NB(9.3, 2.6, 3.1, 0.95), "Model Router", "cheapest capable model", "primary")
+    m = node(s, NB(9.3, 4.1, 3.1, 1.0), "Foundry model", "prompt cache \u2192 cached_tokens", "accent")
+    edge(s, app, "r", gw, "l")
+    edge(s, gw, "r", mr, "l", "cache miss")
+    edge(s, mr, "b", m, "t")
+
+
+def dia12(s):
+    runs = node(s, NB(2.4, 2.5, 3.0, 0.95), "Live agent runs", "tokens + outcome", "primary")
+    tr = node(s, NB(2.4, 4.35, 3.0, 0.95), "App Insights traces", "Pattern 6 \u00b7 KQL by agent", "ghost")
+    roi = node(s, NB(6.7, 3.25, 3.0, 1.15), "Cost \u2194 value \u2194 ROI", "per agent, per version", "dark")
+    a365 = node(s, NB(10.3, 3.3, 2.3, 1.05), "Agent 365", "inventory \u00b7 identity \u00b7 policy", "accent")
+    edge(s, runs, "r", roi, "l")
+    edge(s, tr, "r", roi, "l", dashed=True)
+    edge(s, a365, "l", roi, "r")
+
+
 # ----------------------------------------------------------------------------
 # slide chrome
 # ----------------------------------------------------------------------------
@@ -338,6 +370,27 @@ def pattern_slide(prs, num, title, money, demo, beats, diag):
     _chips(s, beats)
 
 
+def group_slide(prs, idx, total, name, blurb, members):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    _fill(s, 0, 0, W, H, DARK)
+    _fill(s, 0, Inches(2.15), Inches(0.28), Inches(1.45), BLUE)
+    tag = _box(s, Inches(0.7), Inches(1.72), Inches(11), Inches(0.4))
+    _run(tag.text_frame.paragraphs[0], f"GROUP {idx} OF {total}", 12, RGBColor(0xA1, 0x9F, 0x9D), bold=True)
+    tb = _box(s, Inches(0.7), Inches(2.08), Inches(12), Inches(1.3))
+    _run(tb.text_frame.paragraphs[0], name, 40, WHITE, bold=True)
+    p2 = tb.text_frame.add_paragraph()
+    _run(p2, blurb, 20, BLUE, bold=True)
+    body = _box(s, Inches(0.78), Inches(4.0), Inches(12), Inches(2.6))
+    tf = body.text_frame
+    first = True
+    for num, title in members:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        p.space_after = Pt(10)
+        _run(p, f"{num:02d}   ", 17, BLUE, bold=True)
+        _run(p, title, 17, RGBColor(0xC8, 0xC6, 0xC4))
+
+
 def title_slide(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _fill(s, 0, 0, W, H, DARK)
@@ -345,7 +398,7 @@ def title_slide(prs):
     tb = _box(s, Inches(0.7), Inches(2.4), Inches(12), Inches(2))
     _run(tb.text_frame.paragraphs[0], "From AI Gateway to AI Factory", 46, WHITE, bold=True)
     p2 = tb.text_frame.add_paragraph()
-    _run(p2, "Nine Microsoft Foundry patterns — alongside AWS + your gateway", 22, RGBColor(0xC8, 0xC6, 0xC4))
+    _run(p2, "Twelve Microsoft Foundry patterns — alongside AWS + your gateway", 22, RGBColor(0xC8, 0xC6, 0xC4))
     p3 = tb.text_frame.add_paragraph()
     _run(p3, "A Private Banking scenario  \u00b7  Build in GitHub \u2192 Run in Foundry \u2192 Reach in M365", 16, BLUE, bold=True)
 
@@ -384,23 +437,27 @@ def map_slide(prs):
     _run(t.text_frame.paragraphs[0], "Run-of-show \u2014 four groups, 60 minutes", 30, WHITE, bold=True)
     rows = [
         "CONTROL PLANE \u2014 make the gateway the single front door",
-        "     1  Wedge \u2192 AI Hub Gateway / Citadel  (0\u20135)      \u00b7      8  Governance / Prompt Shields  (41\u201350)",
+        "     1  Wedge \u2192 AI Hub Gateway / Citadel  (0\u20134)   \u00b7   8  Governance / Prompt Shields  (4\u201310)",
         "AGENT FACTORY \u2014 build the agent",
-        "     2  Agent Service  (5\u201310)      \u00b7      3  Microsoft IQ  (10\u201315)      \u00b7      4  Agentic Loop  (15\u201320)",
+        "     2  Agent Service  (10\u201315)   \u00b7   3  Microsoft IQ  (15\u201320)",
+        "     4  Agentic Loop  (20\u201325)   \u00b7   10  Memory \u2014 short + long term  (25\u201329)",
         "ORCHESTRATION & INTEROP \u2014 make agents work together",
-        "     5  Multi-agent (Agent Framework)  (20\u201325)      \u00b7      9  AWS cross-cloud, MCP / A2A  (50\u201360)",
+        "     5  Multi-agent (Agent Framework)  (29\u201334)   \u00b7   9  AWS cross-cloud, MCP / A2A  (34\u201340)",
         "OPERATE & OPTIMISE \u2014 run it in production",
-        "     6  Observability & tracing  (25\u201333)      \u00b7      7  Evaluation \u2192 optimization  (33\u201341)",
+        "     6  Observability & tracing  (40\u201347)   \u00b7   7  Evaluation \u2192 optimization  (47\u201353)",
+        "     11  Caching & Cost  (53\u201357)   \u00b7   12  Agent 365 & ROI  (57\u201360)",
     ]
     body = _box(s, Inches(0.8), Inches(1.7), Inches(11.8), Inches(5.2))
     tf = body.text_frame
     first = True
-    for r in rows:
+    for i, r in enumerate(rows):
         p = tf.paragraphs[0] if first else tf.add_paragraph()
         first = False
         is_group = not r.startswith("  ")
-        p.space_after = Pt(4) if is_group else Pt(16)
-        _run(p, r, 16 if is_group else 17, BLUE if is_group else DARK, bold=is_group)
+        # only the last member row of a group gets the wider gap before the next header
+        last_of_group = (not is_group) and (i + 1 == len(rows) or not rows[i + 1].startswith("  "))
+        p.space_after = Pt(14) if last_of_group else Pt(4)
+        _run(p, r, 15 if is_group else 16, BLUE if is_group else DARK, bold=is_group)
 
 
 def close_slide(prs):
@@ -480,6 +537,32 @@ PATTERNS = [
      ["Wrap, don't rewrite \u2014 call AWS tools from Foundry via MCP",
       "A2A hand-off exposes Foundry agents to Bedrock and back",
       "Governance overlay (Entra + Purview) spans both clouds"], dia9),
+    (10, "Memory \u2014 Short-term + Long-term",
+     "Memory is a platform primitive \u2014 not a database you build.",
+     "Recall inside one session, then a BRAND-NEW conversation honours the client's preference \u2014 nothing re-told.",
+     ["Extraction, consolidation, retrieval and TTL \u2014 Foundry's job",
+      "Per-user scope \u2014 isolation plus GDPR forget (delete_scope)",
+      "No state store, no vector DB, no glue code to maintain"], dia10),
+    (11, "Caching & Cost",
+     "Two cache layers and a router \u2014 cheaper without touching your app.",
+     "Repeat the stable prefix and cached_tokens jumps; a trivial prompt downshifts through Model Router.",
+     ["Prompt caching \u2014 automatic; cached_tokens proves the hit",
+      "Model Router \u2014 cost-aware model choice as a deployment",
+      "Semantic cache at the gateway \u2014 dedupes paraphrases"], dia11),
+    (12, "Agent 365 & ROI",
+     "Every agent is an identity you can govern and a cost you can justify.",
+     "Live RM tasks through the gateway \u2192 a cost \u2194 value \u2194 ROI table, projected to monthly volume.",
+     ["Inventory + identity \u2014 Agent 365 and Entra Agent ID",
+      "Cost tied to completed outcomes \u2014 a CFO-legible number",
+      "Built on telemetry you already have \u2014 the Pattern 6 traces"], dia12),
+]
+
+
+GROUPS = [
+    ("Control plane", "make the gateway the single front door", [1, 8]),
+    ("Agent factory", "build the agent", [2, 3, 4, 10]),
+    ("Orchestration & interop", "make agents work together", [5, 9]),
+    ("Operate & optimise", "run it in production", [6, 7, 11, 12]),
 ]
 
 
@@ -489,8 +572,16 @@ def build():
     title_slide(prs)
     story_slide(prs)
     map_slide(prs)
-    for num, title, money, demo, beats, diag in PATTERNS:
-        pattern_slide(prs, num, title, money, demo, beats, diag)
+    by_num = {p[0]: p for p in PATTERNS}
+    missing = [n for _, _, nums in GROUPS for n in nums if n not in by_num]
+    ungrouped = [n for n in by_num if n not in {x for _, _, nums in GROUPS for x in nums}]
+    if missing or ungrouped:
+        raise SystemExit(f"GROUPS/PATTERNS mismatch — missing: {missing}, ungrouped: {ungrouped}")
+    for i, (name, blurb, nums) in enumerate(GROUPS, 1):
+        group_slide(prs, i, len(GROUPS), name, blurb, [(n, by_num[n][1]) for n in nums])
+        for n in nums:
+            num, title, money, demo, beats, diag = by_num[n]
+            pattern_slide(prs, num, title, money, demo, beats, diag)
     close_slide(prs)
 
     out = os.path.join(os.path.dirname(os.path.dirname(__file__)), "foundry-patterns.pptx")
