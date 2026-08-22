@@ -25,7 +25,62 @@ new agentic workloads land for the depth a gateway alone can't give.
 4. **Governance overlay** — even for workloads hosted elsewhere, route data interactions
    through Purview DSPM for AI so audit / DLP is unified across clouds.
 
-## Migrate only where it earns its keep
+## Two routing planes: your traffic vs Foundry's traffic
+
+If the gateway is your control point, be precise about *what* it actually sees. There are two
+independent planes, and covering only the first is the common mistake:
+
+| Plane | Who calls the model | How to route it via APIM |
+| --- | --- | --- |
+| **Client traffic** | your app / SDK | call the gateway URL instead of the Foundry endpoint (Pattern 1, `gateway_client()`) |
+| **Agent traffic** | Foundry, server-side, while running an agent | **BYOM** — a gateway connection + `"<connection>/<model>"` (Pattern 2, `agent_model()`) |
+
+Measured on this library's own APIM: three server-side agent invocations produced **0** gateway
+requests; the same three with BYOM produced **3**. Client calls to the direct endpoint, and even
+agent runs started from the Foundry portal UI, are also invisible to the gateway.
+
+Enabling the managed **AI Gateway** on a project does *not* close this. It provisions a
+per-project APIM product + subscription key and a wildcard API — a quota hook you opt into by
+URL and key — but it does not intercept the direct endpoint, which stays open.
+
+> **Routing is not enforcement.** BYOM and the gateway URL route the traffic you *ask* to route.
+> The only thing that *prevents* bypass is network isolation — private endpoints plus
+> `publicNetworkAccess: Disabled` on the Foundry resource. Do that before claiming containment.
+
+### Setting up BYOM
+
+Create the connection once, then set `AGENT_MODEL_CONNECTION` in `.env`:
+
+```bash
+az rest --method put --body @conn.json \
+  --url "https://management.azure.com/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<account>/projects/<project>/connections/apim-mg?api-version=2025-06-01"
+```
+
+```jsonc
+// conn.json — note: metadata is a flat string map, so "models" is a *serialized* JSON string
+{"properties":{
+  "category":"ModelGateway",
+  "target":"https://<apim>.azure-api.net/<api>/openai/v1",
+  "authType":"ApiKey",
+  "credentials":{"key":"<apim-subscription-key>"},
+  "metadata":{
+    "deploymentInPath":"false",
+    "models":"[{\"name\":\"gpt-5.4-mini\",\"properties\":{\"model\":{\"name\":\"gpt-5.4-mini\",\"version\":\"\",\"format\":\"OpenAI\"}}}]"
+  }}}
+```
+
+Gotchas worth knowing up front:
+
+- **Pick the right category.** `ApiManagement` is the better fit — keyless, via the project's
+  managed identity — but it requires APIM **Standard v2 or Premium**. On other tiers it is
+  accepted at create time and then fails at *inference* time with a misleading
+  `Connection '<name>' not found`. `ModelGateway` works on any tier, at the cost of a static key.
+- **Prompt agents only**, and tools still work — File Search and function calling both run fine
+  through a BYOM model.
+- **Allow ~60s to propagate.** Calls made seconds after creating the connection can fail with the
+  same "not found" error.
+
+
 
 - **Lift the definition, not the plumbing.** A tool contract (OpenAPI / Lambda / action group)
   re-exposes as a Foundry OpenAPI or MCP tool; the agent instructions port directly.

@@ -24,10 +24,15 @@ assistants API, which created a brand-new agent every run.
 
 Verified against azure-ai-projects 2.3.0 + openai 2.45.0 (keyless, DefaultAzureCredential).
 
+Gateway note: set AGENT_MODEL_CONNECTION in .env to route this agent's inference
+through APIM (BYOM). Without it the agent still works, but Foundry calls the model
+directly and the gateway sees nothing — see common/foundry.py and docs/coexistence.md.
+
 Run:  uv run python 02-agent-service/create_prompt_agent.py
 """
 import json
 import os
+import sys
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
@@ -38,9 +43,14 @@ from azure.ai.projects.models import (
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from common.foundry import AGENT_MODEL_CONNECTION, agent_model
+
 load_dotenv()
 ENDPOINT = os.environ["PROJECT_ENDPOINT"]
-MODEL = os.environ.get("MODEL_DEPLOYMENT_NAME", "gpt-5.4-mini")
+# Gateway-qualified when AGENT_MODEL_CONNECTION is set (BYOM), so the inference
+# Foundry runs server-side for this agent still goes through APIM.
+MODEL = agent_model()
 AGENT_NAME = "rm-assistant-prompt"
 
 
@@ -128,6 +138,14 @@ def main():
             ),
         )
         print(f"agent name : {agent.name}  (version {agent.version})")
+        print(
+            f"model      : {MODEL}"
+            + (
+                f"  -> via APIM connection '{AGENT_MODEL_CONNECTION}'"
+                if AGENT_MODEL_CONNECTION
+                else "  -> direct to Foundry (set AGENT_MODEL_CONNECTION to route via APIM)"
+            )
+        )
 
         # 3) ask a compound question — File Search + the function tool in one turn
         answer = ask(
