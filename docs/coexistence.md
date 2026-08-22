@@ -35,13 +35,15 @@ independent planes, and covering only the first is the common mistake:
 | **Client traffic** | your app / SDK | call the gateway URL instead of the Foundry endpoint (Pattern 1, `gateway_client()`) |
 | **Agent traffic** | Foundry, server-side, while running an agent | **BYOM** — a gateway connection + `"<connection>/<model>"` (Pattern 2, `agent_model()`) |
 
-Measured on this library's own APIM: three server-side agent invocations produced **0** gateway
-requests; the same three with BYOM produced **3**. Client calls to the direct endpoint, and even
-agent runs started from the Foundry portal UI, are also invisible to the gateway.
+The second plane is the one teams miss. When Foundry runs an agent, *Foundry* calls the model —
+your client is not in the loop, so pointing your SDK at the gateway has no bearing on that call.
+BYOM is the supported way to pin it: register the gateway as a model connection and reference the
+model as `"<connection>/<model>"`. Verified on this library's APIM — three agent invocations
+through a BYOM model produced three gateway requests, with File Search and function calling
+working normally through it.
 
-Enabling the managed **AI Gateway** on a project does *not* close this. It provisions a
-per-project APIM product + subscription key and a wildcard API — a quota hook you opt into by
-URL and key — but it does not intercept the direct endpoint, which stays open.
+Enabling the managed **AI Gateway** on a project provisions a per-project APIM product,
+subscription key, and gateway URL — the quota hook your clients and connections point at.
 
 > **Routing is not enforcement.** BYOM and the gateway URL route the traffic you *ask* to route.
 > The only thing that *prevents* bypass is network isolation — private endpoints plus
@@ -79,6 +81,61 @@ Gotchas worth knowing up front:
   through a BYOM model.
 - **Allow ~60s to propagate.** Calls made seconds after creating the connection can fail with the
   same "not found" error.
+
+## Governing tools, not just models
+
+An agent calls **tools** as well as models, and tool calls deserve the same control point.
+Pattern 3 publishes Web IQ as our own MCP API on APIM, giving the gateway three jobs:
+
+- **authenticate the caller** — `subscriptionRequired: true`, so no APIM key means no access;
+- **hold the backend credential** — the Web IQ key lives in a secret named value and is injected
+  inbound, so it never reaches a client, a `.env`, or a source file;
+- **meter usage** — `rate-limit-by-key` runs *before* the request is proxied upstream.
+
+Measured on this APIM: no key → **401**, bogus key → **401**, valid key → **200** (credential added
+by the gateway), calls past the limit → **429**.
+
+Two things that cost time:
+
+- **An MCP API needs a `backendId`, not just `serviceUrl`.** With only `serviceUrl`, APIM answers
+  the MCP handshake itself and `tools/list` comes back **empty**. Point a backend entity at the
+  upstream MCP URL and set `backendId` — then the real tool list passes through.
+- **MCP routes are invisible at older api-versions.** Use `2025-09-01-preview`; `2024-05-01` omits
+  `type: mcp` APIs entirely, so they look like they don't exist.
+
+> **Never read `context.Response.Body` in an MCP policy.** MCP streams over SSE, and touching the
+> response body forces buffering, which breaks the stream. Control is inbound-side — auth, quota,
+> tool allow-listing — not response inspection.
+
+```bash
+# 1) the upstream MCP server, as a backend entity
+az rest --method put --url ".../backends/webiq-mcp-backend?api-version=2025-09-01-preview" \
+  --body '{"properties":{"url":"https://api.microsoft.ai/v3/mcp","protocol":"http"}}'
+
+# 2) the MCP API itself (note backendId + subscriptionRequired)
+az rest --method put --url ".../apis/webiq-mcp?api-version=2025-09-01-preview" --body '{"properties":{
+  "displayName":"WebIQ MCP (governed)","path":"webiq-mcp","protocols":["https"],
+  "serviceUrl":"https://api.microsoft.ai/v3/mcp","backendId":"webiq-mcp-backend",
+  "subscriptionRequired":true,"type":"mcp",
+  "mcpProperties":{"endpoints":{"mcp":{"uriTemplate":"/mcp"}},"isFederationRouter":false}}}'
+
+# 3) the upstream key, held by the gateway as a secret
+az rest --method put --url ".../namedValues/webiq-api-key?api-version=2025-09-01-preview" \
+  --body '{"properties":{"displayName":"webiq-api-key","value":"<web-iq-key>","secret":true}}'
+```
+
+The policy that does the work:
+
+```xml
+<inbound>
+  <base />
+  <!-- callers never hold the upstream credential -->
+  <set-header name="x-apikey" exists-action="delete" />
+  <set-header name="x-apikey" exists-action="override"><value>{{webiq-api-key}}</value></set-header>
+  <rate-limit-by-key calls="5" renewal-period="60"
+    counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />
+</inbound>
+```
 
 
 

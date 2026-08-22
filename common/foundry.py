@@ -129,17 +129,15 @@ def gateway_client():
 
 # ----- BYOM: route AGENT traffic through the gateway (Pattern 2) ------------
 # Pattern 1 puts *client* traffic through APIM simply by calling the gateway URL.
-# That does nothing for agents: when Foundry runs a prompt agent server-side it
-# calls the model directly, and APIM never sees it (measured: 3 invocations ->
-# 0 gateway requests). Enabling the managed "AI Gateway" on the project does not
-# change this — it provisions a per-project product + subscription key, but it
-# does not intercept the direct endpoint.
+# That covers one plane only. When Foundry runs a prompt agent server-side,
+# *Foundry* calls the model — your client is not in the loop, so which URL your
+# SDK uses has no bearing on that call.
 #
-# BYOM ("bring your own model") closes the gap by inverting the direction:
-# instead of intercepting Foundry's egress, APIM becomes the model's *declared
-# backend*. Create a gateway connection on the Foundry project, then reference
-# the model as "<connection-name>/<model-name>" and agent inference routes
-# through it (measured: 3 invocations -> +3 gateway requests).
+# BYOM ("bring your own model") is the supported way to route it: rather than
+# intercepting Foundry's egress, APIM becomes the model's *declared backend*.
+# Create a gateway connection on the Foundry project, then reference the model as
+# "<connection-name>/<model-name>" and agent inference routes through it
+# (measured: 3 invocations -> +3 gateway requests, tools working normally).
 #
 # Create the connection once (see docs/coexistence.md for the full body):
 #   az rest --method put --url "https://management.azure.com/subscriptions/<sub>/
