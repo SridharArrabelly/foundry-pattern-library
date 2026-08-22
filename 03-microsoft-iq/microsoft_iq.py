@@ -1,7 +1,7 @@
 """
 Pattern 3 — Microsoft IQ: the intelligence layer, governed by the gateway.
 
-Microsoft IQ is Microsoft's enterprise intelligence layer — four layers of context:
+Microsoft IQ is the intelligence layer — four layers of context:
 
   * WEB IQ     — AI-first web grounding: model-agnostic, MCP-native, ~2.5x faster
                  than the next best alternative (Build 2026).

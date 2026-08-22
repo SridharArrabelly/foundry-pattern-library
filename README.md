@@ -135,7 +135,7 @@ flowchart TB
 ```
 
 ### 3 · Microsoft IQ — the intelligence layer
-Microsoft IQ is Microsoft's enterprise intelligence layer, in four parts: **Web IQ** (live web),
+Microsoft IQ is the intelligence layer, in four parts: **Web IQ** (live web),
 **Foundry IQ** (enterprise knowledge), **Fabric IQ** (business data and KPIs) and **Work IQ**
 (M365 org context). This pattern runs
 **Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
