@@ -1,5 +1,7 @@
 # Pattern 10 — Memory (short-term + long-term)
 
+**Group:** Agent factory  ·  **Runs 6th of 12** in the hour (minutes 25–29)
+
 **Slide title:** *Memory is a platform primitive — not a database you build.*
 
 ## The 60-second track
@@ -32,6 +34,13 @@
 4. Open Foundry → project → **Agents → rm-assistant-memory** and the per-user
    **Memory** store to show the extracted facts in the portal.
 5. (Optional) uncomment `delete_scope` to prove *forget*.
+
+## Why this one stays off the gateway
+If someone asks why Pattern 10 isn't on the BYOM route like Patterns 2 and 6: `memory_search`
+is **not supported with a BYO model** — Foundry rejects it outright with *"The following tools
+are not supported with BYO model: memory_search"*. File Search and function tools do work over
+BYOM; this one doesn't. The memory store's own extraction and embedding calls also resolve
+against deployments directly. See [`docs/coexistence.md`](../docs/coexistence.md).
 
 ## Grounding
 Uses the official API from *Create and use memory in Foundry Agent Service*:

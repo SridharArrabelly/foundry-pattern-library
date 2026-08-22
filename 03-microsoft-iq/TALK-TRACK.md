@@ -1,5 +1,7 @@
 # Pattern 3 — Microsoft IQ: the intelligence layer
 
+**Group:** Agent factory  ·  **Runs 4th of 12** in the hour (minutes 15–20)
+
 **Slide title:** *Grounding that's truly yours — and every tool call governed.*
 
 ## The 60-second track
@@ -20,15 +22,15 @@
 >
 > The client I'm about to run carries **no Web IQ credential at all**. [run `microsoft_iq.py`]
 >
-> AWS can front the web and a vector store. It cannot ground agents in your **Microsoft 365
-> graph of work** or your **Fabric business model**, and it doesn't ship a single MCP-native
-> context plane across all four."
+> Any cloud can front the web and a vector store. None of them can ground agents in your
+> **Microsoft 365 graph of work** or your **Fabric business model**, or ship a single
+> MCP-native context plane across all four."
 
 ## What it beats in a homegrown factory
 - **Tool calls governed like model calls** — same gateway, same control point, one audit trail.
 - **Key custody in the gateway** — the backend credential never reaches a client or a `.env`.
 - **Retrieval planning** across sources (Foundry IQ) instead of hand-wired RAG.
-- **Org + business context** (Work IQ, Fabric IQ) — a moat AWS structurally can't match.
+- **Org + business context** (Work IQ, Fabric IQ) — a moat no other platform can match.
 
 ## Money line
 > "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise. And every one

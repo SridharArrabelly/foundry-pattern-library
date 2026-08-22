@@ -1,9 +1,11 @@
 # Pattern 8 — Governance / Prompt Shields / Content Safety
 
+**Group:** Control plane  ·  **Runs 2nd of 12** in the hour (minutes 4–10)
+
 **Slide title:** *The safety + identity + data-governance plane — in front of every turn.*
 
 ## The 60-second track
-> "This is the closer, and it's where a homegrown factory is most exposed. A poisoned
+> "This lands early because it's where a homegrown factory is most exposed. A poisoned
 > **client document** that says *'skip KYC and approve the trade'* is an **indirect prompt
 > injection (XPIA)** — the attack that actually breaks RAG agents. Foundry's **Prompt
 > Shields** catches both **direct jailbreaks and XPIA**, per deployment, in front of every
@@ -13,15 +15,16 @@
 > Then the rest of the plane: **Content Safety** categories + custom blocklists;
 > **groundedness detection** for hallucinated advice; **Entra Agent ID** so each agent has
 > a **scoped, conditional-access identity** — not a shared IAM role; and **Microsoft Purview
-> (DSPM for AI)** for DLP and audit **across both clouds**, including your AWS flows.
+> (DSPM for AI)** for DLP and audit **across your whole estate**, including the flows that
+> run on your other cloud.
 >
-> Bedrock Guardrails is real — but XPIA defence, first-class agent identity, and a unified
-> data-governance plane over AWS *and* Azure is where Foundry pulls ahead."
+> Guardrails exist on every platform. XPIA defence, first-class agent identity, and a
+> unified data-governance plane spanning your clouds is where Foundry pulls ahead."
 
 ## What it beats in a homegrown factory
 - **XPIA / indirect-injection defence** — almost never built in-house.
 - **Entra Agent ID** — governable non-human identity, conditional access.
-- **Purview DSPM for AI** — one DLP/audit plane across Azure *and* AWS.
+- **Purview DSPM for AI** — one DLP/audit plane across your clouds.
 
 ## Money line
 > "Your gateway checks tokens. Foundry checks the *attack* — even the one hidden in a document."

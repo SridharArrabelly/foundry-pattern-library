@@ -1,5 +1,7 @@
 # Pattern 5 — Multi-agent orchestration (Agent Framework)
 
+**Group:** Orchestration & interop  ·  **Runs 7th of 12** in the hour (minutes 29–34)
+
 **Slide title:** *Multi-agent — when it earns its keep. Orchestrate specialists, don't hand-wire them.*
 
 ## The 60-second track
@@ -34,4 +36,4 @@
 ## Demo steps
 1. `uv run python 05-multi-agent/orchestrator.py`
 2. Show the analyst's risk view and the compliance officer's **BLOCK** with the 70%-equities rule.
-3. Segue to Pattern 6: "every one of those agent + tool calls just emitted a trace."
+3. Segue to Pattern 9: "now let's make those specialists reach across clouds."

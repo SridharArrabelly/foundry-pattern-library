@@ -1,5 +1,7 @@
 # Pattern 6 — Observability & tracing
 
+**Group:** Operate & optimise  ·  **Runs 9th of 12** in the hour (minutes 40–47)
+
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 
 ## The 60-second track
@@ -20,8 +22,16 @@
 > understand agents, tools and runs, not just HTTP calls, and Foundry traces the run
 > **server-side** into the Tracing tab for free. Second, it's **OpenTelemetry**, so there's
 > **no lock-in**: the same stream goes to App Insights *and* your Datadog / Grafana /
-> Elastic via one OTLP exporter. AWS X-Ray/CloudWatch is fine — but it's not agent-native
-> and it's not portable off AWS."
+> Elastic via one OTLP exporter — which a cloud-native APM tied to one provider won't do."
+
+## And a fourth place, with BYOM
+> "If you've set up **BYOM** (Pattern 2), there's a fourth: the **gateway's own metrics**.
+> Because APIM is the model's declared backend, this agent's inference shows up as gateway
+> requests alongside your client traffic — one place to see spend across both planes."
+
+Set `AGENT_MODEL_CONNECTION` in `.env` and this pattern's agent routes through APIM too
+(measured: 3 invocations → +3 gateway requests, tools working normally). Leave it blank and
+the agent runs on the direct Foundry route — the traces are identical either way.
 
 ## Why a Foundry agent (not an in-process one)
 A Foundry agent has a **portal identity** and Foundry exports its run traces server-side to
@@ -44,6 +54,7 @@ call are captured too. Result: the run shows in the portal Tracing tab **and** A
 3. Portal: **Foundry → Tracing** → open the run's waterfall (server-side spans).
 4. **App Insights → Transaction search / Logs** → same trace, ~1–2 min ingestion lag.
 5. Point at a model span: tokens, latency, prompt/completion. Mention the one-line OTLP dual-export.
+6. With `AGENT_MODEL_CONNECTION` set, show the same run in the **gateway metrics** (BYOM).
 
 ## Notes
 - Two env flags must be ON **before** instrumentation (the script sets them):
