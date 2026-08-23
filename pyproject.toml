@@ -1,7 +1,7 @@
 [project]
 name = "foundry-pattern-library"
 version = "0.1.0"
-description = "From AI Gateway to AI Factory — eight runnable Microsoft Foundry patterns for a Private Banking scenario, positioned alongside AWS."
+description = "Microsoft Foundry Patterns — runnable patterns for building, governing and operating agents, told through a Private Banking scenario."
 readme = "README.md"
 # Pinned below 3.14: several Azure SDK deps have no 3.14 wheels yet.
 requires-python = ">=3.12,<3.14"
