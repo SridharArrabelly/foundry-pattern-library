@@ -154,6 +154,18 @@ flowchart LR
   G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
+### 8 · Governance (Prompt Shields + Content Safety)
+Prompt Shields blocks a direct jailbreak and an injection hidden in a client document, while a clean question passes — **live and keyless** on the Foundry AI Services account (no separate resource).
+
+```mermaid
+flowchart LR
+  U["User turn"] --> PS["Prompt Shields<br/>jailbreak + indirect (XPIA)"]
+  D["Client doc — hidden XPIA"] --> PS
+  PS -->|"allow"| AG["Agent → model"]
+  PS -->|"deny"| BL["BLOCKED"]
+  AG -.->|"governed by"| GOV["Entra Agent ID · Purview DSPM for AI"]
+```
+
 ### 2 · Agent Service (prompt and hosted agent)
 **Two ways to run an agent on Foundry**, same Private Banking scenario, both with a
 governable Entra Agent ID — see [`02-agent-service/`](02-agent-service/):
@@ -229,6 +241,17 @@ flowchart LR
   EN["Engine: Copilot SDK BYOM<br/>your Azure model + billing"] -.-> OB
 ```
 
+### 10 · Memory (short-term + long-term)
+Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
+
+```mermaid
+flowchart LR
+  U["RM / client"] --> AG["Foundry agent<br/>+ MemorySearchPreviewTool"]
+  AG -->|"same session"| C["Conversation<br/>(short-term)"]
+  AG -->|"across sessions"| MS["Memory Store<br/>per-user scope · TTL<br/>(long-term)"]
+  MS -.->|"embeddings"| EMB["text-embedding-3-small"]
+```
+
 ### 5 · Multi-agent orchestration (Agent Framework)
 Fan out to specialists concurrently, then aggregate — Compliance can return BLOCK.
 
@@ -239,6 +262,24 @@ flowchart LR
   PA --> AGG["Aggregate"]
   CO --> AGG
   AGG --> RES["Advice<br/>(BLOCK if unsuitable)"]
+```
+
+### 9 · Cross-cloud interop (MCP / A2A)
+A Foundry agent calls an external tool over MCP (an AWS Lambda in this example); A2A hands off to another cloud's agent (Bedrock here). Swap in whatever the customer runs.
+
+```mermaid
+flowchart LR
+  subgraph AZURE["Microsoft Azure"]
+    FA["Foundry Agent"]
+  end
+  subgraph AWSC["AWS"]
+    LT["AWS tool — Lambda"]
+    BA["Amazon Bedrock agent"]
+  end
+  FA --> MCP["MCP / A2A"]
+  MCP --> LT
+  MCP -.->|"A2A"| BA
+  FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
 ```
 
 ### 6 · Observability & tracing (OpenTelemetry)
@@ -263,47 +304,6 @@ flowchart LR
   GT -->|"wrong 'suitable'"| FL["FAIL → blocks merge"]
   GT -->|"all pass"| OK["Merge"]
   EV --> FE["Foundry — Evaluations tab"]
-```
-
-### 8 · Governance (Prompt Shields + Content Safety)
-Prompt Shields blocks a direct jailbreak and an injection hidden in a client document, while a clean question passes — **live and keyless** on the Foundry AI Services account (no separate resource).
-
-```mermaid
-flowchart LR
-  U["User turn"] --> PS["Prompt Shields<br/>jailbreak + indirect (XPIA)"]
-  D["Client doc — hidden XPIA"] --> PS
-  PS -->|"allow"| AG["Agent → model"]
-  PS -->|"deny"| BL["BLOCKED"]
-  AG -.->|"governed by"| GOV["Entra Agent ID · Purview DSPM for AI"]
-```
-
-### 9 · Cross-cloud interop (MCP / A2A)
-A Foundry agent calls an external tool over MCP (an AWS Lambda in this example); A2A hands off to another cloud's agent (Bedrock here). Swap in whatever the customer runs.
-
-```mermaid
-flowchart LR
-  subgraph AZURE["Microsoft Azure"]
-    FA["Foundry Agent"]
-  end
-  subgraph AWSC["AWS"]
-    LT["AWS tool — Lambda"]
-    BA["Amazon Bedrock agent"]
-  end
-  FA --> MCP["MCP / A2A"]
-  MCP --> LT
-  MCP -.->|"A2A"| BA
-  FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
-```
-
-### 10 · Memory (short-term + long-term)
-Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
-
-```mermaid
-flowchart LR
-  U["RM / client"] --> AG["Foundry agent<br/>+ MemorySearchPreviewTool"]
-  AG -->|"same session"| C["Conversation<br/>(short-term)"]
-  AG -->|"across sessions"| MS["Memory Store<br/>per-user scope · TTL<br/>(long-term)"]
-  MS -.->|"embeddings"| EMB["text-embedding-3-small"]
 ```
 
 ### 11 · Cost & latency (prompt cache + Model Router)
