@@ -1,46 +1,35 @@
 # Security
 
-Microsoft takes the security of our software products and services seriously, which includes
-all source code repositories managed through our GitHub organizations.
+This is a **sample** library. The code demonstrates patterns against Microsoft Foundry and is
+not intended to run unmodified in production. Review authentication, network isolation and
+data handling against your own requirements before adapting anything here.
 
-If you believe you have found a security vulnerability, please report it to us as described
-below.
+## Reporting a problem with this repository
 
-## Reporting security issues
+If you find a security issue in **this sample code** — for example a pattern that leaks a
+credential, or guidance that would lead someone into an insecure configuration — please open
+an issue in this repository, or contact the maintainer privately through GitHub if you would
+rather not disclose it publicly first.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+This project is not an official Microsoft product and is not covered by Microsoft's support
+or vulnerability-response programmes.
 
-Instead, report them to the Microsoft Security Response Center (MSRC) at
-<https://msrc.microsoft.com/create-report>, or by email to
-[secure@microsoft.com](mailto:secure@microsoft.com). If possible, encrypt your message with
-our PGP key; please download it from the
-[Microsoft Security Response Center PGP Key page](https://www.microsoft.com/msrc/pgp-key-msrc).
+## Reporting a vulnerability in a Microsoft product
 
-You should receive a response within 24 hours. If for some reason you do not, please follow
-up via email to ensure we received your original message.
+If you believe you have found a vulnerability in **Microsoft Foundry, Azure or any other
+Microsoft product or service** — as opposed to this sample — do not report it here. Report it
+to the Microsoft Security Response Center:
 
-Please include as much of the following as you can:
+- <https://msrc.microsoft.com/create-report>
+- or email [secure@microsoft.com](mailto:secure@microsoft.com)
 
-- Type of issue (for example: buffer overflow, SQL injection, cross-site scripting)
-- Full paths of source file(s) related to the manifestation of the issue
-- The location of the affected source code (tag/branch/commit or direct URL)
-- Any special configuration required to reproduce the issue
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code, if possible
-- Impact of the issue, including how an attacker might exploit it
+Please do not report vulnerabilities in Microsoft products through public GitHub issues.
 
-This information will help us triage your report more quickly.
+## Handling secrets in this repo
 
-## A note on this repository
+Configuration is read from `.env`, which is gitignored. `.env.example` carries placeholders
+only. Never commit real endpoints, keys, subscription keys or tenant identifiers.
 
-This is a **sample** library. The code demonstrates patterns and is not intended to run
-unmodified in production. In particular, review authentication, network isolation and data
-handling against your own requirements before adapting anything here.
-
-Configuration is read from `.env`, which is gitignored. Never commit real endpoints, keys or
-tenant identifiers — `.env.example` carries placeholders only.
-
-## Policy
-
-Microsoft follows the principle of
-[Coordinated Vulnerability Disclosure](https://www.microsoft.com/msrc/cvd).
+Every pattern here authenticates with Microsoft Entra ID via `DefaultAzureCredential` by
+default, so a normal run needs no static secrets at all. Key-based fallbacks exist for a few
+patterns; prefer the keyless path.

@@ -9,6 +9,10 @@ your existing gateway and cloud** — not instead of them.
 Each pattern is a folder you can run on its own against your own Foundry project. Nothing
 here is a mock: if a capability isn't wired up, the pattern says so rather than pretending.
 
+> This is a community sample, **not an official Microsoft product**, and is not endorsed by
+> or supported by Microsoft. Microsoft product names and marks belong to Microsoft; see
+> [`CONTRIBUTING.md`](CONTRIBUTING.md) for the trademark notice.
+
 ## Getting started
 
 You'll need an [Azure subscription](https://azure.microsoft.com/free/), a
