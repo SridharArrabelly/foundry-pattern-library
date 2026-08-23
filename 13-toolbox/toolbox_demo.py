@@ -16,7 +16,7 @@ Agents connect to the consumer endpoint. Credentials stay server-side, guardrail
 apply at the toolbox level, and versions are promoted centrally -- so the tool
 plane changes without redeploying a single agent.
 
-This script proves two things a homegrown factory can't do:
+This script proves two things that are hard to do without a managed tool plane:
 
   1. VERSIONING. v1 lists its tools directly. v2 adds `toolbox_search`, which
      hides them behind two meta-tools (`tool_search` + `call_tool`). We promote

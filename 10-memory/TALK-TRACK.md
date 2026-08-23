@@ -1,6 +1,6 @@
 # Pattern 10 — Memory (short-term + long-term)
 
-**Group:** Agent factory  ·  **Runs 7th of 13** in the run order
+**Group:** Agent factory  ·  **Runs 7th of 12** in the run order
 
 **Slide title:** *Memory is a platform primitive — not a database you build.*
 

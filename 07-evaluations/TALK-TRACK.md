@@ -1,6 +1,6 @@
-# Pattern 7 — Evaluation → optimization
+# Pattern 7 — Evaluation → optimization (CI gate)
 
-**Group:** Operate & optimise  ·  **Runs 11th of 13** in the run order
+**Group:** Operate & optimise  ·  **Runs 11th of 12** in the run order
 
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 

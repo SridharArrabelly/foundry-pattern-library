@@ -1,6 +1,6 @@
-# Pattern 3 — Microsoft IQ: the intelligence layer
+# Pattern 3 — Microsoft IQ — the intelligence layer
 
-**Group:** Agent factory  ·  **Runs 4th of 13** in the run order
+**Group:** Agent factory  ·  **Runs 4th of 12** in the run order
 
 **Slide title:** *Grounding that's truly yours — and every tool call governed.*
 
