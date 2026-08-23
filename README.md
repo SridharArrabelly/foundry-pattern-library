@@ -1,6 +1,6 @@
 # Foundry Pattern Library — "From AI Gateway to AI Factory"
 
-Twelve runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
+Thirteen runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
 your existing gateway and cloud** — not instead of them.
 
@@ -41,7 +41,7 @@ flowchart LR
 
 ## What's inside
 
-Twelve patterns in four groups. Each group answers a different question, and you can enter at
+Thirteen patterns in four groups. Each group answers a different question, and you can enter at
 whichever one the customer is actually asking about. The deck and the suggested run-of-show
 below walk the groups in order; the numbers are just stable folder IDs.
 
@@ -58,6 +58,7 @@ below walk the groups in order; the numbers are just stable folder IDs.
 |---|--------|---------|----------------|-----------|
 | 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
 | 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ, Fabric IQ and Work IQ complete the family (narrated, not wired) | ✅ |
+| 13 | `13-toolbox/` | Centralized Toolboxes | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
 | 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
@@ -152,6 +153,24 @@ flowchart LR
   GW -.-> FI["Foundry IQ<br/>enterprise knowledge"]
   GW -.-> FB["Fabric IQ<br/>business data · KPIs"]
   GW -.-> WK["Work IQ<br/>M365 org context"]
+```
+
+### 13 · Centralized Toolboxes
+Curate tools once; every agent consumes them from one MCP endpoint. Versions are promoted
+centrally, so the tool plane changes without redeploying an agent. **Tool search** hides N
+tool definitions behind two meta-tools, so a toolbox scales without flooding the context
+window. Pattern 3's APIM-governed Web IQ API can sit *inside* the toolbox — the gateway
+still meters it.
+
+```mermaid
+flowchart LR
+  A1["Agent A"] --> TB["Toolbox<br/>one MCP endpoint · default version"]
+  A2["Agent B"] --> TB
+  A3["LangGraph / Copilot"] --> TB
+  TB --> MCP["MCP servers<br/>incl. APIM Web IQ (Pattern 3)"]
+  TB --> CI["Code Interpreter"]
+  TB --> TS["Tool search<br/>N definitions → 2 meta-tools"]
+  TB -. "promote v2 → default" .-> TB
 ```
 
 ### 4 · Agentic Loop — Build Skills, Not Agents
@@ -300,14 +319,15 @@ Sixty minutes, walked group by group — the same order as `foundry-patterns.ppt
 | Group | # | Pattern | Minutes |
 |-------|---|---------|---------|
 | Control plane | 1 | Wedge → AI Hub Gateway / Citadel | 0–4 |
-| Control plane | 8 | Governance / Prompt Shields / Content Safety | 4–10 |
-| Agent factory | 2 | Agent Service | 10–15 |
-| Agent factory | 3 | Microsoft IQ — the intelligence layer | 15–20 |
-| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) | 20–25 |
-| Agent factory | 10 | Memory (Short-term & Long-term) | 25–29 |
-| Orchestration & interop | 5 | Multi-agent (Agent Framework) | 29–34 |
-| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) | 34–40 |
-| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) | 40–47 |
-| Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–53 |
-| Operate & optimise | 11 | Caching & Cost | 53–57 |
-| Operate & optimise | 12 | Agent 365 & ROI | 57–60 |
+| Control plane | 8 | Governance / Prompt Shields / Content Safety | 4–9 |
+| Agent factory | 2 | Agent Service | 9–14 |
+| Agent factory | 3 | Microsoft IQ — the intelligence layer | 14–19 |
+| Agent factory | 13 | Centralized Toolboxes | 19–24 |
+| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) | 24–28 |
+| Agent factory | 10 | Memory (Short-term & Long-term) | 28–32 |
+| Orchestration & interop | 5 | Multi-agent (Agent Framework) | 32–36 |
+| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) | 36–41 |
+| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) | 41–47 |
+| Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–52 |
+| Operate & optimise | 11 | Caching & Cost | 52–56 |
+| Operate & optimise | 12 | Agent 365 & ROI | 56–60 |

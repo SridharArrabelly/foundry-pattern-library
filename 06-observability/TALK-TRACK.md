@@ -1,6 +1,6 @@
 # Pattern 6 — Observability & tracing
 
-**Group:** Operate & optimise  ·  **Runs 9th of 12** in the hour (minutes 40–47)
+**Group:** Operate & optimise  ·  **Runs 10th of 13** in the hour (minutes 41–47)
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 

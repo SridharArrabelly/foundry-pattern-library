@@ -1,6 +1,6 @@
 # Pattern 4 — Agentic Loop: "Build Skills, Not Agents"
 
-**Group:** Agent factory  ·  **Runs 5th of 12** in the hour (minutes 20–25)
+**Group:** Agent factory  ·  **Runs 6th of 13** in the hour (minutes 24–28)
 
 **Slide title:** *One agent. One loop (Plan → Act → Observe). N swappable skills.*
 

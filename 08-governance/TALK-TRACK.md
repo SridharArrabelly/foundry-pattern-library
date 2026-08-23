@@ -1,6 +1,6 @@
 # Pattern 8 — Governance / Prompt Shields / Content Safety
 
-**Group:** Control plane  ·  **Runs 2nd of 12** in the hour (minutes 4–10)
+**Group:** Control plane  ·  **Runs 2nd of 13** in the hour (minutes 4–9)
 
 **Slide title:** *The safety + identity + data-governance plane — in front of every turn.*
 
