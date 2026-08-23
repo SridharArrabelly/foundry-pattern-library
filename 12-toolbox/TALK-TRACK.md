@@ -1,4 +1,4 @@
-# Pattern 13 — Centralized Toolboxes (one governed MCP endpoint)
+# Pattern 12 — Centralized Toolboxes (one governed MCP endpoint)
 
 **Group:** Agent factory  ·  **Runs 5th of 12** in the run order
 
@@ -31,7 +31,7 @@ Say this explicitly or people will hear an echo of Pattern 3:
 
 - **Pattern 3** governs *one tool call at your gateway*. APIM authenticates the caller,
   holds the backend key and meters the call. It works for any client, Foundry or not.
-- **Pattern 13** governs *the whole catalogue inside Foundry* — one endpoint, versioned,
+- **Pattern 12** governs *the whole catalogue inside Foundry* — one endpoint, versioned,
   discoverable, curated centrally.
 - **They compose.** Set `TOOLBOX_INCLUDE_WEBIQ=true` and Pattern 3's APIM-governed Web IQ
   API becomes a tool *inside* the toolbox. The gateway still meters it; the toolbox hands
@@ -50,7 +50,7 @@ Say this explicitly or people will hear an echo of Pattern 3:
 > "You don't wire tools to agents. You run a tool plane — and the agents subscribe."
 
 ## Running it
-1. `uv run python 13-toolbox/toolbox_demo.py`
+1. `uv run python 12-toolbox/toolbox_demo.py`
 2. Two versions are created: one plain, one with tool search.
 3. Point at **`v_n` exposes 4 / `v_n+1` exposes 2** — that's the context-cost story.
 4. The **promotion**: default flips to the new version and the *same* consumer URL starts

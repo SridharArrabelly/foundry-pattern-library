@@ -1,5 +1,5 @@
 """
-Pattern 13 — Centralized Toolboxes: one governed tool plane for every agent.
+Pattern 12 — Centralized Toolboxes: one governed tool plane for every agent.
 
 Patterns 2 and 3 each wire tools to a single agent. That works until you have
 forty agents: every team re-implements the same tools, every agent carries its
@@ -32,7 +32,7 @@ This script proves two things that are hard to do without a managed tool plane:
 Auth is keyless: an Entra token for https://ai.azure.com/.default. Note the
 scope -- it differs from the cognitiveservices scope the other patterns use.
 
-Run:  uv run python 13-toolbox/toolbox_demo.py
+Run:  uv run python 12-toolbox/toolbox_demo.py
 """
 import asyncio
 import os
