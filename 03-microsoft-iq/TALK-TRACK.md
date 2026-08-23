@@ -10,7 +10,7 @@
 > - **Web IQ** — AI-first web grounding, **MCP-native**, ~**2.5× faster** than the next best
 >   alternative. This is the one we run live.
 > - **Foundry IQ** — enterprise knowledge (policies, contracts, product docs) with retrieval
->   planning over Azure AI Search, instead of hand-wired RAG.
+>   planning over Azure AI Search, instead of hand-wired RAG. Narrated here, not wired.
 > - **Fabric IQ** — your business data: KPIs, semantic models and analytics over OneLake. For
 >   a bank that's AUM, risk metrics and portfolio performance as *governed* context.
 > - **Work IQ** — the M365 graph of work: people, documents, meetings.
@@ -25,6 +25,12 @@
 > Any cloud can front the web and a vector store. None of them can ground agents in your
 > **Microsoft 365 graph of work** or your **Fabric business model**, or ship a single
 > MCP-native context plane across all four."
+
+## What's live vs narrated
+**Web IQ is the only layer this repo runs.** It's live through the APIM MCP route. Foundry IQ,
+Fabric IQ and Work IQ are real product layers and part of the story, but nothing here calls
+them — they're drawn dashed on the slide for exactly that reason. If you're asked, say so
+plainly: wiring Foundry IQ needs an Azure AI Search index with real content behind it.
 
 ## What it beats in a homegrown factory
 - **Tool calls governed like model calls** — same gateway, same control point, one audit trail.

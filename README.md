@@ -57,7 +57,7 @@ below walk the groups in order; the numbers are just stable folder IDs.
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ is the enterprise half; Fabric IQ and Work IQ complete the family | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ, Fabric IQ and Work IQ complete the family (narrated, not wired) | ✅ |
 | 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
@@ -140,15 +140,16 @@ Microsoft IQ is the intelligence layer, in four parts: **Web IQ** (live web),
 (M365 org context). This pattern runs
 **Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
 caller, injects the Web IQ key from a secret it holds, and meters every tool call, so no Web
-IQ credential ever sits client-side. Foundry IQ is the enterprise half of the same story.
-Fabric IQ and Work IQ complete the family and are dashed below: real layers, not wired up here.
+IQ credential ever sits client-side. **Foundry IQ, Fabric IQ and Work IQ are narrated, not
+wired up here** — they're dashed below: real layers of the same story, but this repo runs the
+Web IQ leg only.
 
 ```mermaid
 flowchart LR
   AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|subscription key only| GW["APIM MCP API<br/>authN · quota"]
   SEC["APIM secret<br/>webiq-api-key"] -. injected inbound .-> GW
   GW --> W["Web IQ<br/>cited live web"]
-  GW --> FI["Foundry IQ<br/>enterprise knowledge"]
+  GW -.-> FI["Foundry IQ<br/>enterprise knowledge"]
   GW -.-> FB["Fabric IQ<br/>business data · KPIs"]
   GW -.-> WK["Work IQ<br/>M365 org context"]
 ```

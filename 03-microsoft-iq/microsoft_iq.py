@@ -131,7 +131,8 @@ async def main():
     print("(401 without a key, 429 past the limit). The client you just ran carries no Web IQ")
     print("credential at all. Web IQ is one of four IQ layers — Foundry IQ (enterprise")
     print("knowledge), Fabric IQ (business data) and Work IQ (org context) ground the same")
-    print("agent through the same gateway. That breadth is what AWS can't match.")
+    print("agent through the same gateway. Those three are the story, not this script: only")
+    print("the Web IQ leg is wired up here.")
 
 
 if __name__ == "__main__":
