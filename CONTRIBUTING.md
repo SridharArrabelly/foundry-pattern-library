@@ -15,19 +15,17 @@ pattern has drifted from the current Foundry SDK surface, which moves quickly.
 
 ## Contributor License Agreement
 
-Most contributions require you to agree to a Contributor License Agreement (CLA) declaring
-that you have the right to, and actually do, grant us the rights to use your contribution.
-For details, visit <https://cla.opensource.microsoft.com>.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to
-provide a CLA and decorate the PR appropriately. Simply follow the instructions provided by
-the bot. You will only need to do this once across all repos using our CLA.
+None required. Contributions are accepted under the terms of the repository's
+[MIT licence](LICENSE) — by opening a pull request you agree your contribution is licensed
+the same way.
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized
-use of Microsoft trademarks or logos is subject to and must follow
+This project is **not** an official Microsoft product and is not endorsed by Microsoft. It
+references Microsoft product names and shows Microsoft Foundry in diagrams and screenshots
+for identification purposes only. Microsoft, Azure, Microsoft Foundry, Microsoft 365 and
+related names are trademarks of the Microsoft group of companies; any use of Microsoft
+trademarks or logos is subject to
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause
-confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos is
-subject to those third parties' policies.
+Third-party names and marks — including those of other cloud providers referenced as
+examples — are the property of their respective owners.
