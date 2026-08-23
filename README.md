@@ -2,7 +2,7 @@
 
 **Runnable patterns for building, governing and operating agents.**
 
-Thirteen of them, told through **one Private Banking scenario**
+Twelve of them, told through **one Private Banking scenario**
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
 your existing gateway and cloud** — not instead of them.
 
@@ -86,7 +86,7 @@ flowchart LR
 
 ## What's inside
 
-Thirteen patterns in four groups. Each group answers a different question, so you can start
+Twelve patterns in four groups. Each group answers a different question, so you can start
 with whichever one matches the problem in front of you. The deck and the run-of-show below
 walk the groups in order; the numbers are just stable folder IDs.
 
@@ -95,33 +95,32 @@ walk the groups in order; the numbers are just stable folder IDs.
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
-| 8 | `08-governance/` | Governance / Prompt Shields | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
+| 8 | `08-governance/` | Governance (Prompt Shields + Content Safety) | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
 
 ### Agent factory — build the agent
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 2 | `02-agent-service/` | Agent Service | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
+| 2 | `02-agent-service/` | Agent Service (prompt and hosted agent) | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
 | 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ, Fabric IQ and Work IQ complete the family (narrated, not wired) | ✅ |
-| 13 | `13-toolbox/` | Centralized Toolboxes | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
-| 4 | `04-agentic-loop/` | Agentic Loop — "Build Skills, Not Agents" | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
-| 10 | `10-memory/` | Memory — short-term + long-term | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
+| 13 | `13-toolbox/` | Centralized Toolboxes (one governed MCP endpoint) | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
+| 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
+| 10 | `10-memory/` | Memory (short-term + long-term) | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
 ### Orchestration & interop — make agents work together
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 5 | `05-multi-agent/` | Multi-agent orchestration | **Agent Framework**: orchestrator + 2 specialists | ✅ |
-| 9 | `09-aws-interop/` | Cross-cloud interop — bring your other cloud | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+| 5 | `05-multi-agent/` | Multi-agent orchestration (Agent Framework) | **Agent Framework**: orchestrator + 2 specialists | ✅ |
+| 9 | `09-aws-interop/` | Cross-cloud interop (MCP / A2A) | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
 
 ### Operate & optimise — run it in production
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 6 | `06-observability/` | Observability & tracing | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights — and, with BYOM, the same call in the gateway metrics | ✅ |
-| 7 | `07-evaluations/` | Evaluation → optimization | Scorecard + CI gate; a wrong row fails the gate | ✅ |
-| 11 | `11-caching-cost/` | Caching & Cost | Prompt-cache hit on the repeat call (cached tokens) + Model Router downshift, through the gateway | ✅ |
-| 12 | `12-agent365-roi/` | Agent 365 & ROI | Cost ↔ outcome ↔ ROI table from live agent runs; Agent 365 adds org-wide inventory/identity/policy | ✅ |
+| 6 | `06-observability/` | Observability & tracing (OpenTelemetry) | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights — and, with BYOM, the same call in the gateway metrics. Cost per agent and version is a KQL query on the same spans | ✅ |
+| 7 | `07-evaluations/` | Evaluation → optimization (CI gate) | Scorecard + CI gate; a wrong row fails the gate | ✅ |
+| 11 | `11-caching-cost/` | Cost & latency (prompt cache + Model Router) | Prompt-cache hit on the repeat call (cached tokens, ~4× faster) + Model Router downshift, through the gateway | ✅ |
 
 ### The gateway thread
 
@@ -155,7 +154,7 @@ flowchart LR
   G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
-### 2 · Agent Service
+### 2 · Agent Service (prompt and hosted agent)
 **Two ways to run an agent on Foundry**, same Private Banking scenario, both with a
 governable Entra Agent ID — see [`02-agent-service/`](02-agent-service/):
 - **A. Prompt-based** (`create_prompt_agent.py`) — declarative: model + instructions + tools.
@@ -200,7 +199,7 @@ flowchart LR
   GW -.-> WK["Work IQ<br/>M365 org context"]
 ```
 
-### 13 · Centralized Toolboxes
+### 13 · Centralized Toolboxes (one governed MCP endpoint)
 Curate tools once; every agent consumes them from one MCP endpoint. Versions are promoted
 centrally, so the tool plane changes without redeploying an agent. **Tool search** hides N
 tool definitions behind two meta-tools, so a toolbox scales without flooding the context
@@ -218,7 +217,7 @@ flowchart LR
   TB -. "promote v2 → default" .-> TB
 ```
 
-### 4 · Agentic Loop — Build Skills, Not Agents
+### 4 · Agentic Loop (build skills, not agents)
 One Plan/Act/Observe loop, N skills-as-folders; swap the engine to Copilot SDK BYOM.
 
 ```mermaid
@@ -230,7 +229,7 @@ flowchart LR
   EN["Engine: Copilot SDK BYOM<br/>your Azure model + billing"] -.-> OB
 ```
 
-### 5 · Multi-agent Orchestration (Agent Framework)
+### 5 · Multi-agent orchestration (Agent Framework)
 Fan out to specialists concurrently, then aggregate — Compliance can return BLOCK.
 
 ```mermaid
@@ -242,7 +241,7 @@ flowchart LR
   AGG --> RES["Advice<br/>(BLOCK if unsuitable)"]
 ```
 
-### 6 · Observability & Tracing
+### 6 · Observability & tracing (OpenTelemetry)
 Create a **real Foundry agent**, run one traced turn, and the same OTel trace lands in the Foundry portal (Agents + Tracing) **and** App Insights — portable, no lock-in.
 
 ```mermaid
@@ -255,7 +254,7 @@ flowchart TB
   OT -.-> DG["Datadog / Grafana"]
 ```
 
-### 7 · Evaluation → Optimization
+### 7 · Evaluation → optimization (CI gate)
 Score the golden set in **Foundry's cloud eval service**; a wrong "suitable" answer fails groundedness and the CI gate blocks the PR. Results show in the terminal *and* the Foundry **Evaluations** tab.
 
 ```mermaid
@@ -266,7 +265,7 @@ flowchart LR
   EV --> FE["Foundry — Evaluations tab"]
 ```
 
-### 8 · Governance / Prompt Shields / Content Safety
+### 8 · Governance (Prompt Shields + Content Safety)
 Prompt Shields blocks a direct jailbreak and an injection hidden in a client document, while a clean question passes — **live and keyless** on the Foundry AI Services account (no separate resource).
 
 ```mermaid
@@ -278,7 +277,7 @@ flowchart LR
   AG -.->|"governed by"| GOV["Entra Agent ID · Purview DSPM for AI"]
 ```
 
-### 9 · Cross-cloud Interop — bring your other cloud
+### 9 · Cross-cloud interop (MCP / A2A)
 A Foundry agent calls an external tool over MCP (an AWS Lambda in this example); A2A hands off to another cloud's agent (Bedrock here). Swap in whatever the customer runs.
 
 ```mermaid
@@ -296,7 +295,7 @@ flowchart LR
   FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
 ```
 
-### 10 · Memory — short-term + long-term
+### 10 · Memory (short-term + long-term)
 Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
 
 ```mermaid
@@ -307,7 +306,7 @@ flowchart LR
   MS -.->|"embeddings"| EMB["text-embedding-3-small"]
 ```
 
-### 11 · Caching & Cost
+### 11 · Cost & latency (prompt cache + Model Router)
 Two cost layers: model-side prompt caching (identical prefix) and gateway semantic cache (equivalent prompts), plus Model Router picking the cheapest capable model.
 
 ```mermaid
@@ -315,16 +314,6 @@ flowchart LR
   A["App"] -->|"Entra token"| GW["Azure AI Gateway (APIM)<br/>semantic cache"]
   GW --> MR["Model Router<br/>cheapest capable model"]
   MR --> M["Foundry model<br/>prompt cache: cached_tokens ↑"]
-```
-
-### 12 · Agent 365 & ROI
-Every agent is an identity you can inventory and a cost you can tie to an outcome — governance and FinOps in one plane.
-
-```mermaid
-flowchart LR
-  RUNS["Live agent runs<br/>tokens + outcome"] --> ROI["Cost ↔ value ↔ ROI"]
-  TR["App Insights traces<br/>(Pattern 6)"] -.->|"KQL by agent/version"| ROI
-  A365["Agent 365 (portal)"] -->|"org-wide inventory · Entra Agent ID · policy"| ROI
 ```
 
 ## Suggested run-of-show
@@ -335,15 +324,14 @@ the room; the order is what matters.
 | Group | # | Pattern |
 |-------|---|---------|
 | Control plane | 1 | Wedge → AI Hub Gateway / Citadel |
-| Control plane | 8 | Governance / Prompt Shields / Content Safety |
-| Agent factory | 2 | Agent Service |
+| Control plane | 8 | Governance (Prompt Shields + Content Safety) |
+| Agent factory | 2 | Agent Service (prompt and hosted agent) |
 | Agent factory | 3 | Microsoft IQ — the intelligence layer |
-| Agent factory | 13 | Centralized Toolboxes |
-| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) |
-| Agent factory | 10 | Memory (Short-term & Long-term) |
-| Orchestration & interop | 5 | Multi-agent (Agent Framework) |
-| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) |
+| Agent factory | 13 | Centralized Toolboxes (one governed MCP endpoint) |
+| Agent factory | 4 | Agentic Loop (build skills, not agents) |
+| Agent factory | 10 | Memory (short-term + long-term) |
+| Orchestration & interop | 5 | Multi-agent orchestration (Agent Framework) |
+| Orchestration & interop | 9 | Cross-cloud interop (MCP / A2A) |
 | Operate & optimise | 6 | Observability & tracing (OpenTelemetry) |
 | Operate & optimise | 7 | Evaluation → optimization (CI gate) |
-| Operate & optimise | 11 | Caching & Cost |
-| Operate & optimise | 12 | Agent 365 & ROI |
+| Operate & optimise | 11 | Cost & latency (prompt cache + Model Router) |

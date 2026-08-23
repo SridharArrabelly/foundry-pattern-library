@@ -1,5 +1,5 @@
 """
-Pattern 11 — Caching & Cost. Keyless, through your gateway.
+Pattern 11 — Cost & latency (prompt cache + Model Router). Keyless, through your gateway.
 
 Two cost levers Foundry gives you for free that a raw model call doesn't:
 

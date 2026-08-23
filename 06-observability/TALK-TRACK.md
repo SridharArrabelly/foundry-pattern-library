@@ -1,6 +1,6 @@
-# Pattern 6 — Observability & tracing
+# Pattern 6 — Observability & tracing (OpenTelemetry)
 
-**Group:** Operate & optimise  ·  **Runs 10th of 13** in the run order
+**Group:** Operate & optimise  ·  **Runs 10th of 12** in the run order
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 
@@ -43,6 +43,24 @@ call are captured too. Result: the run shows in the portal Tracing tab **and** A
 - **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
 - **Token + cost + latency** attributes per span → real observability & FinOps.
 - **OpenTelemetry** = portable; ship to Azure Monitor *and* your existing backend.
+
+## Cost attribution comes free with this
+The same spans carry token counts, so cost per agent is a KQL query away — no separate
+metering pipeline, no spreadsheet. Group by `gen_ai.agent.name` and the agent **version** and
+you can show that a new version is cheaper *and* better before you promote it:
+
+```kusto
+dependencies
+| where isnotempty(customDimensions["gen_ai.agent.name"])
+| summarize calls = count(),
+            tokens = sum(toint(customDimensions["gen_ai.usage.total_tokens"]))
+        by agent = tostring(customDimensions["gen_ai.agent.name"]),
+           version = tostring(customDimensions["gen_ai.agent.version"])
+```
+
+Multiply tokens by your rate card for spend per agent. That last step is your arithmetic, not
+a platform feature — but the attribution underneath it is real telemetry, which is the part
+that's hard to build. Agent 365 adds the org-wide inventory, identity and policy layer on top.
 
 ## The one-liner
 > "Same agent you saw in the Agents list — now with a flight recorder. And it's OTel, so it's yours."

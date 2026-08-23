@@ -1,6 +1,6 @@
-# Pattern 8 — Governance / Prompt Shields / Content Safety
+# Pattern 8 — Governance (Prompt Shields + Content Safety)
 
-**Group:** Control plane  ·  **Runs 2nd of 13** in the run order
+**Group:** Control plane  ·  **Runs 2nd of 12** in the run order
 
 **Slide title:** *The safety + identity + data-governance plane — in front of every turn.*
 

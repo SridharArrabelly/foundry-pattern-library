@@ -1,6 +1,6 @@
-# Pattern 13 — Centralized Toolboxes
+# Pattern 13 — Centralized Toolboxes (one governed MCP endpoint)
 
-**Group:** Agent factory  ·  **Runs 5th of 13** in the run order
+**Group:** Agent factory  ·  **Runs 5th of 12** in the run order
 
 **Slide title:** *Curate tools once. Every agent gets them — governed, versioned, discoverable.*
 

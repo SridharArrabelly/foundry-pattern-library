@@ -1,6 +1,6 @@
-# Pattern 11 — Caching & Cost
+# Pattern 11 — Cost & latency (prompt cache + Model Router)
 
-**Group:** Operate & optimise  ·  **Runs 12th of 13** in the run order
+**Group:** Operate & optimise  ·  **Runs 12th of 12** in the run order
 
 **Slide title:** *Two cache layers and a router — cheaper without touching your app.*
 

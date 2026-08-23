@@ -1,6 +1,6 @@
-# Pattern 9 — Cross-cloud interop — bring your other cloud
+# Pattern 9 — Cross-cloud interop (MCP / A2A)
 
-**Group:** Orchestration & interop  ·  **Runs 9th of 13** in the run order
+**Group:** Orchestration & interop  ·  **Runs 9th of 12** in the run order
 
 **Slide title:** *Coexistence: your other cloud runs an agent. Foundry runs the agent factory. MCP/A2A joins them.*
 
