@@ -27,7 +27,9 @@ Run one leg while configuring or diagnosing:
 """
 import argparse
 import asyncio
+import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -102,14 +104,58 @@ async def run_web_iq():
 
             print(f"Calling `{tool}` with a grounded query...\n> {WEB_QUERY}\n")
             result = await session.call_tool(tool, {"query": WEB_QUERY})
-            for block in result.content:
-                text = getattr(block, "text", None)
-                if text:
-                    print(text[:1800])
+            texts, source_urls = validate_web_result(result)
+            for text in texts:
+                print(text[:1800])
 
     print("\nWeb IQ complete: APIM authenticated and metered the tool call; citations came")
-    print("from live web grounding. The Basic v2 caller subscription key is the documented")
-    print("exception to this repository's keyless-first posture.")
+    print(f"from live web grounding ({len(source_urls)} source URL(s) validated). The Basic")
+    print("v2 caller subscription key is the documented exception to this repository's")
+    print("keyless-first posture.")
+
+
+def _source_urls(value) -> set[str]:
+    urls = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if (
+                key.lower() in {"url", "sourceurl", "source_url"}
+                and isinstance(item, str)
+                and item.startswith(("https://", "http://"))
+            ):
+                urls.add(item)
+            urls.update(_source_urls(item))
+    elif isinstance(value, list):
+        for item in value:
+            urls.update(_source_urls(item))
+    return urls
+
+
+def validate_web_result(result) -> tuple[list[str], list[str]]:
+    """Fail on MCP errors or payloads without source-bearing grounded output."""
+    if getattr(result, "isError", False):
+        raise RuntimeError("Web IQ MCP tool returned isError=true")
+
+    structured = getattr(result, "structuredContent", None)
+    texts = [
+        text
+        for block in getattr(result, "content", []) or []
+        if (text := getattr(block, "text", None))
+    ]
+
+    urls = _source_urls(structured) if structured is not None else set()
+    for text in texts:
+        try:
+            urls.update(_source_urls(json.loads(text)))
+        except json.JSONDecodeError:
+            urls.update(re.findall(r"https?://[^\s\"'<>]+", text))
+    if not urls:
+        raise RuntimeError("Web IQ MCP output contained no source URLs/citations")
+    if not texts and structured is not None:
+        texts = [json.dumps(structured, ensure_ascii=False)]
+    if not texts:
+        raise RuntimeError("Web IQ MCP tool returned no printable grounded content")
+    return texts, sorted(urls)
 
 
 def annotation_dict(annotation) -> dict:
@@ -126,16 +172,20 @@ def annotation_dict(annotation) -> dict:
     }
 
 
-def print_search_citations(response) -> int:
-    """Print citation annotations returned by the Responses API."""
+def collect_search_citations(response) -> list[dict]:
+    """Collect citation annotations returned by the Responses API."""
     citations = []
-    for output in response.output:
+    for output in getattr(response, "output", []) or []:
         for content in getattr(output, "content", []) or []:
             for annotation in getattr(content, "annotations", []) or []:
                 value = annotation_dict(annotation)
-                if value and value not in citations:
+                annotation_type = value.get("type", "")
+                if "citation" in annotation_type and value not in citations:
                     citations.append(value)
+    return citations
 
+
+def print_search_citations(citations: list[dict]):
     for number, citation in enumerate(citations, start=1):
         label = (
             citation.get("title")
@@ -146,7 +196,34 @@ def print_search_citations(response) -> int:
             or "Azure AI Search result"
         )
         print(f"  [{number}] {label}")
-    return len(citations)
+
+
+def validate_search_response(response) -> list[dict]:
+    """Require a completed Search call, its output, and citation-bearing answer text."""
+    if getattr(response, "status", None) != "completed":
+        raise RuntimeError(
+            f"Azure AI Search response did not complete: {getattr(response, 'status', None)!r}"
+        )
+    output = getattr(response, "output", []) or []
+    calls = [item for item in output if getattr(item, "type", None) == "azure_ai_search_call"]
+    call_outputs = [
+        item for item in output if getattr(item, "type", None) == "azure_ai_search_call_output"
+    ]
+    if not calls:
+        raise RuntimeError("The agent response contains no Azure AI Search tool invocation")
+    if not call_outputs:
+        raise RuntimeError("The agent response contains no Azure AI Search tool output")
+    for item in calls + call_outputs:
+        status = getattr(item, "status", None)
+        if status not in (None, "completed"):
+            raise RuntimeError(f"Azure AI Search tool item did not complete: {status!r}")
+
+    citations = collect_search_citations(response)
+    if not citations:
+        raise RuntimeError("Azure AI Search answer contains no citation annotations")
+    if not (getattr(response, "output_text", None) or "").strip():
+        raise RuntimeError("Azure AI Search answer text is empty")
+    return citations
 
 
 def run_enterprise_search():
@@ -202,6 +279,7 @@ def run_enterprise_search():
         )
         response = project.get_openai_client().responses.create(
             input=SEARCH_QUERY,
+            tool_choice="required",
             extra_body={
                 "agent_reference": {
                     "name": agent.name,
@@ -209,14 +287,14 @@ def run_enterprise_search():
                 }
             },
         )
+        citations = validate_search_response(response)
         print(f"\n> {SEARCH_QUERY}\n")
         print(response.output_text)
-        citation_count = print_search_citations(response)
-        if citation_count == 0:
-            print("  [citation metadata not exposed; the answer names the indexed source]")
+        print_search_citations(citations)
 
-    print("\nAzure AI Search complete: Foundry invoked the project connection server-side")
-    print("with DefaultAzureCredential used only for project authentication.")
+    print("\nAzure AI Search complete: a Search call + output + citation annotations were")
+    print("validated. Foundry used the project connection server-side;")
+    print("DefaultAzureCredential was used only for project authentication.")
 
 
 def parse_args():

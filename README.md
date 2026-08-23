@@ -120,8 +120,8 @@ walk the groups in order; the numbers are just stable folder IDs.
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 7 | `07-evaluation-release-gate/` | Evaluation & release gate | Scorecard + CI gate; a wrong row fails the gate | ✅ |
-| 6 | `06-observability/` | Observability & tracing (OpenTelemetry) | Metadata-only OpenTelemetry traces in **both** Foundry *Tracing* and App Insights; prompt/completion bodies require explicit opt-in | ✅ |
+| 7 | `07-evaluation-release-gate/` | Evaluation & release gate | Generate candidate answers, score them in Foundry, and fail closed; an explicit demo mode plants a regression | ✅ |
+| 6 | `06-observability/` | Observability & tracing (OpenTelemetry) | Metadata-only, Responses-capable OpenTelemetry spans in **both** Foundry *Tracing* and App Insights; prompt/completion bodies require explicit opt-in | ✅ |
 | 11 | `11-caching-cost/` | Cost & latency (prompt cache + Model Router) | Prompt-cache hit on the repeat call (cached tokens, ~4× faster) + Model Router downshift, through the gateway | ✅ |
 
 ### The gateway thread
@@ -294,13 +294,14 @@ flowchart LR
 ```
 
 ### 7 · Evaluation & release gate
-Score the golden set in **Foundry's cloud eval service**; a wrong "suitable" answer fails
-groundedness and the CI gate blocks the PR. Results show in the terminal *and* the Foundry
-**Evaluations** tab.
+Generate answers from the candidate prompt/model for every answer-free golden-set row, then
+score those outputs in **Foundry's cloud eval service**. The default CI path can pass and
+fails closed on unsuccessful runs, errored rows, missing metrics, or failed required metrics.
+`--demo-failure` explicitly plants a wrong answer for the failure walkthrough.
 
 ```mermaid
 flowchart LR
-  GS["Golden set<br/>(+ planted wrong row)"] --> AG["Agent"] --> EV["Evaluators<br/>groundedness · tool-accuracy"] --> GT{"CI gate"}
+  GS["Golden set<br/>questions + policy context"] --> AG["Candidate<br/>prompt + model"] --> EV["Evaluators<br/>groundedness · relevance · coherence"] --> GT{"CI gate"}
   GT -->|"wrong 'suitable'"| FL["FAIL → blocks merge"]
   GT -->|"all pass"| OK["Merge"]
   EV --> FE["Foundry — Evaluations tab"]
@@ -309,8 +310,9 @@ flowchart LR
 ### 6 · Observability & tracing (OpenTelemetry)
 Create a **real Foundry agent**, run one traced turn, and the same metadata-only OTel trace
 lands in Foundry (Agents + Tracing) **and** App Insights. Agent, model, tool, token and latency
-data is preserved without exporting prompt/completion bodies by default. Set
-`TRACE_CONTENT_RECORDING=true` only when telemetry access and retention are approved.
+data is preserved by the SDK-native, Responses-capable `AIProjectInstrumentor`, including
+trace-context propagation to Foundry, without exporting prompt/completion bodies by default.
+Set `TRACE_CONTENT_RECORDING=true` only when telemetry access and retention are approved.
 
 ```mermaid
 flowchart TB

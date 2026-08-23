@@ -479,8 +479,38 @@ def update_content(presentation):
             "Score the golden set locally AND in Foundry; a wrong 'suitable' tanks "
             "groundedness and the CI gate blocks the PR.",
             "Foundry cloud scorecard + CI release gate; a wrong answer blocks the PR.",
+            "Generate candidate answers, score in Foundry, fail closed; demo mode plants one regression.",
         ),
-        "Foundry cloud scorecard + CI release gate; a wrong answer blocks the PR.",
+        "Generate candidate answers, score in Foundry, fail closed; demo mode plants one regression.",
+    )
+    replace_text(
+        patterns[7],
+        (
+            "Golden set\n+ planted wrong row",
+            "Golden set\nquestions + policy context",
+        ),
+        "Golden set\nquestions + policy context",
+    )
+    replace_text(
+        patterns[7],
+        ("Agent", "Candidate\nprompt + model"),
+        "Candidate\nprompt + model",
+    )
+    replace_text(
+        patterns[7],
+        (
+            "Evaluators\ngroundedness \u00b7 tool-accuracy",
+            "Evaluators\ngroundedness \u00b7 relevance \u00b7 coherence",
+        ),
+        "Evaluators\ngroundedness \u00b7 relevance \u00b7 coherence",
+    )
+    replace_text(
+        patterns[7],
+        (
+            "Scores locally + uploads to the Foundry Evaluations tab",
+            "Candidate answers are generated before cloud evaluation",
+        ),
+        "Candidate answers are generated before cloud evaluation",
     )
     replace_text(
         patterns[6],

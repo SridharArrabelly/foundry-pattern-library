@@ -35,10 +35,12 @@ from common.foundry import (
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import FunctionTool, PromptAgentDefinition
+from azure.ai.projects.telemetry import AIProjectInstrumentor
 from azure.identity import DefaultAzureCredential
 
 AGENT_NAME = "rm-assistant-traced"
 QUESTION = "Is client C-1290 compliant per the suitability policy?"
+CONTENT_RECORDING_ENV = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"
 
 
 # --- a function tool so the trace shows a real agent -> tool -> model waterfall ---
@@ -64,22 +66,27 @@ HOLDINGS_TOOL = FunctionTool(
 )
 
 
-def enable_tracing():
-    """Send metadata-only spans unless content recording is explicitly enabled."""
-    conn = app_insights_connection_string()
-    print("Resolved the Application Insights connected to the Foundry project.")
-
+def configure_trace_content() -> bool:
+    """Map the sample opt-in to OpenTelemetry's documented GenAI content switch."""
     record_content = os.environ.get("TRACE_CONTENT_RECORDING", "false").strip().lower() in {
         "1",
         "true",
         "yes",
     }
-    # Set before instrumentation. Semantic spans remain enabled in both modes; only
-    # prompt/completion bodies are gated by the explicit enterprise opt-in.
-    os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] = (
-        "true" if record_content else "false"
-    )
-    os.environ.setdefault("AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING", "true")
+    os.environ[CONTENT_RECORDING_ENV] = "true" if record_content else "false"
+    os.environ["AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING"] = "true"
+    return record_content
+
+
+def content_recording_enabled() -> bool:
+    return os.environ.get(CONTENT_RECORDING_ENV, "false").strip().lower() == "true"
+
+
+def enable_tracing():
+    """Configure Azure Monitor plus native Responses tracing and context propagation."""
+    conn = app_insights_connection_string()
+    print("Resolved the Application Insights connected to the Foundry project.")
+    record_content = configure_trace_content()
     if record_content:
         print(
             "Trace content recording ENABLED: prompts/completions are exported and inherit "
@@ -91,39 +98,66 @@ def enable_tracing():
     from azure.monitor.opentelemetry import configure_azure_monitor
 
     configure_azure_monitor(connection_string=conn)
+    from opentelemetry import trace
 
-    # Instrument the OpenAI SDK -> model spans (tokens/latency) for the Responses calls.
-    try:
-        from opentelemetry.instrumentation.openai_v2 import OpenAIInstrumentor
-
-        OpenAIInstrumentor().instrument()
-        print("OpenAI SDK instrumented — model spans (tokens/latency) will be emitted.")
-    except Exception as e:
-        print(f"(OpenAI instrumentor not applied: {e} — agent spans still flow.)")
+    instrument_foundry(record_content)
+    print(
+        "Native Foundry instrumentation enabled for Responses spans and "
+        "client/server trace-context propagation."
+    )
+    return trace.get_tracer("foundry-pattern-library")
 
 
-def ask(openai_client, agent_name, question):
-    """Ask the agent via the Responses API, running the function-tool loop as needed."""
+def instrument_foundry(record_content: bool):
+    """Enable the SDK instrumentor that supports Responses and trace propagation."""
+    instrumentor = AIProjectInstrumentor()
+    instrumentor.instrument(
+        enable_content_recording=record_content,
+        enable_trace_context_propagation=True,
+        enable_baggage_propagation=False,
+    )
+    return instrumentor
+
+
+def ask(openai_client, agent_name, question, tracer):
+    """Ask the Foundry agent with explicit agent/model/tool Responses spans."""
     ref = {"name": agent_name, "type": "agent_reference"}
-    resp = openai_client.responses.create(input=question, extra_body={"agent_reference": ref})
-    while True:
-        calls = [o for o in resp.output if getattr(o, "type", None) == "function_call"]
-        if not calls:
-            return resp.output_text
-        outputs = []
-        for call in calls:
-            args = json.loads(call.arguments or "{}")
-            outputs.append(
-                {"type": "function_call_output", "call_id": call.call_id, "output": get_client_holdings(**args)}
-            )
+    with tracer.start_as_current_span("invoke_agent") as agent_span:
+        agent_span.set_attribute("gen_ai.agent.name", agent_name)
         resp = openai_client.responses.create(
-            previous_response_id=resp.id, input=outputs, extra_body={"agent_reference": ref}
+            input=question,
+            extra_body={"agent_reference": ref},
         )
+        while True:
+            calls = [o for o in resp.output if getattr(o, "type", None) == "function_call"]
+            if not calls:
+                return resp.output_text
+            outputs = []
+            for call in calls:
+                args = json.loads(call.arguments or "{}")
+                with tracer.start_as_current_span(
+                    f"execute_tool {call.name}"
+                ) as tool_span:
+                    tool_span.set_attribute("gen_ai.tool.name", call.name)
+                    tool_span.set_attribute("gen_ai.tool.call.id", call.call_id)
+                    result = get_client_holdings(**args)
+                outputs.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": call.call_id,
+                        "output": result,
+                    }
+                )
+            resp = openai_client.responses.create(
+                previous_response_id=resp.id,
+                input=outputs,
+                extra_body={"agent_reference": ref},
+            )
 
 
 def main():
     # 1) Tracing ON, pointed at the project's App Insights (backs the portal Tracing tab).
-    enable_tracing()
+    tracer = enable_tracing()
 
     project = AIProjectClient(endpoint=PROJECT_ENDPOINT, credential=DefaultAzureCredential())
     with project:
@@ -148,12 +182,11 @@ def main():
         # 3) Run one turn under a parent span so the whole thing groups into one trace.
         from opentelemetry import trace
 
-        tracer = trace.get_tracer("foundry-demo-pack")
         with tracer.start_as_current_span("rm-observability-demo") as span:
             span.set_attribute("gen_ai.agent.name", AGENT_NAME)
             span.set_attribute("demo.client_id", "C-1290")
             print(f"> {QUESTION}")
-            answer = ask(openai_client, agent.name, QUESTION)
+            answer = ask(openai_client, agent.name, QUESTION, tracer)
             print("\nAgent answer:\n", answer)
 
         # 4) Force-flush so spans are exported before the process exits.
@@ -168,7 +201,11 @@ def main():
     print("Each span carries: model, token counts, latency and tool name.")
     print(
         "Prompt/completion bodies are "
-        + ("included (explicit opt-in)." if os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] == "true" else "excluded (enterprise-safe default).")
+        + (
+            "included (explicit opt-in)."
+            if content_recording_enabled()
+            else "excluded (enterprise-safe default)."
+        )
     )
     print("Waterfall: rm-observability-demo -> agent run -> get_client_holdings -> model call.")
 

@@ -38,7 +38,10 @@ the agent runs on the direct Foundry route — the traces are identical either w
 A Foundry agent has a **portal identity** and Foundry exports its run traces server-side to
 the project's connected App Insights — the exact resource that backs the **Tracing** tab.
 We ALSO wire the client-side Azure Monitor exporter, so our parent span + the local tool
-call are captured too. Result: the run shows in the portal Tracing tab **and** App Insights.
+call are captured too. The generic locked OpenAI instrumentor does not wrap
+`responses.create`; this sample instead uses the SDK-native `AIProjectInstrumentor`, which
+instruments Responses and injects `traceparent`/`tracestate` so client and Foundry
+server-side spans share one trace ID.
 
 ## What Foundry gives you here
 - **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
@@ -77,10 +80,10 @@ that's hard to build. Agent 365 adds the org-wide inventory, identity and policy
 6. With `AGENT_MODEL_CONNECTION` set, show the same run in the **gateway metrics** (BYOM).
 
 ## Notes
-- Metadata-only is the enterprise-safe default. `AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING=true`
-  keeps agent/model/tool/token/latency semantic spans on. Prompt/completion content is exported
-  only when `TRACE_CONTENT_RECORDING=true`; doing so makes sensitive content subject to the
-  telemetry backend's access controls and retention policy.
+- Metadata-only is the enterprise-safe default. `TRACE_CONTENT_RECORDING=true` maps to
+  OpenTelemetry's documented `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`.
+  Only then do the explicit Responses spans attach prompt/completion bodies; doing so makes
+  sensitive content subject to the telemetry backend's access controls and retention policy.
 - Benign on a laptop: red `169.254.169.254` / IMDS / WinError 10051 tracebacks are the Azure
   Monitor VM resource detector + managed-identity probe looking for cloud metadata. Harmless,
   and absent on Azure compute.
