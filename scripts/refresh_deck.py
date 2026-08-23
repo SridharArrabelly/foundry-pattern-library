@@ -513,6 +513,14 @@ def update_content(presentation):
         "Candidate answers are generated before cloud evaluation",
     )
     replace_text(
+        patterns[7],
+        (
+            "CI gate on every PR \u2014 regressions can't merge",
+            "Scoped CI gate \u2014 relevant regressions can't merge",
+        ),
+        "Scoped CI gate \u2014 relevant regressions can't merge",
+    )
+    replace_text(
         patterns[6],
         (
             "Run enable_tracing.py \u2014 agent 'rm-assistant-traced' + its trace in BOTH "

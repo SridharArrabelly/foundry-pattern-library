@@ -10,7 +10,8 @@
 > **intent resolution** and **tool-call accuracy**. The checked-in golden set contains
 > questions and policy context, not pre-written answers. [run `run_eval.py`] The candidate
 > prompt and model answer every row first; those generated answers are what Foundry judges.
-> A prompt or implementation change can therefore move the score and block the merge.
+> A change to the version-controlled candidate instructions, configured model, evaluation
+> fixtures, or this gate's direct dependencies can therefore move the score and block that PR.
 >
 > For the live failure move, add `--demo-failure`. Only that explicit mode replaces one
 > generated answer with the wrong claim that 90% equities is suitable for a Conservative
@@ -23,7 +24,8 @@
 
 ## What Foundry gives you here
 - **Agent-grade evaluators** (groundedness, tool-call accuracy, intent) — offline *and* online.
-- **CI gate** on every PR (`eval-ci.yml`) — quality regressions can't merge.
+- **Scoped CI gate** (`eval-ci.yml`) — runs when this sample's candidate/gate inputs or direct
+  dependencies change, so relevant quality regressions can't merge.
 - **Continuous optimization** (Agent Optimizer, Rubric Evaluators) — eval → hill-climb.
 
 ## The one-liner

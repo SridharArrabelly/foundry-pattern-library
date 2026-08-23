@@ -298,6 +298,8 @@ Generate answers from the candidate prompt/model for every answer-free golden-se
 score those outputs in **Foundry's cloud eval service**. The default CI path can pass and
 fails closed on unsuccessful runs, errored rows, missing metrics, or failed required metrics.
 `--demo-failure` explicitly plants a wrong answer for the failure walkthrough.
+The workflow is scoped to this sample's candidate instructions, model/dependency
+configuration and evaluation fixtures—not arbitrary agents elsewhere in a repository.
 
 ```mermaid
 flowchart LR

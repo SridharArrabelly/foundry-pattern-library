@@ -1,14 +1,16 @@
 # Pattern 7 — Evaluation & release gate. Drop into .github/workflows/.
-# Every PR that touches prompts/agents gets scored; a groundedness regression
-# blocks the merge. This is what a gateway + DIY factory cannot give them.
+# Score PRs that change this sample's checked-in candidate instructions/eval
+# fixtures or the shared runtime/dependencies; each run evaluates the configured model.
 name: agent-eval-gate
 
 on:
   pull_request:
     paths:
-      - "agents/**"
-      - "prompts/**"
       - "07-evaluation-release-gate/**"
+      - "common/foundry.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
 
 permissions:
   id-token: write   # OIDC federated login to Azure — no stored secrets
