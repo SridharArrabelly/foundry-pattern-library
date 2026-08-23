@@ -20,7 +20,7 @@ dependencies = [
     "agent-framework>=1.9.0",
     # OpenAI-compatible calls (Pattern 1 gateway client)
     "openai>=1.40.0",
-    # MCP interop (Patterns 3, 9 + 13)
+    # MCP interop (Patterns 3, 9 + 12)
     "mcp>=1.2.0",
     # Utility
     "python-dotenv>=1.0.0",
