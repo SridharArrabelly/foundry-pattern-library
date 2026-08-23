@@ -1,6 +1,6 @@
 # Pattern 2 — Agent Service
 
-**Group:** Agent factory  ·  **Runs 3rd of 13** in the hour (minutes 9–14)
+**Group:** Agent factory  ·  **Runs 3rd of 13** in the run order
 
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 

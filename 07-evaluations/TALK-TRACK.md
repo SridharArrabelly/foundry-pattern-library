@@ -1,6 +1,6 @@
 # Pattern 7 — Evaluation → optimization
 
-**Group:** Operate & optimise  ·  **Runs 11th of 13** in the hour (minutes 47–52)
+**Group:** Operate & optimise  ·  **Runs 11th of 13** in the run order
 
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 
