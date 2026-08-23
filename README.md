@@ -1,6 +1,8 @@
-# Foundry Pattern Library — "From AI Gateway to AI Factory"
+# Microsoft Foundry Patterns
 
-Thirteen runnable Microsoft Foundry patterns, told through **one Private Banking scenario**
+**Runnable patterns for building, governing and operating agents.**
+
+Thirteen of them, told through **one Private Banking scenario**
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
 your existing gateway and cloud** — not instead of them.
 
