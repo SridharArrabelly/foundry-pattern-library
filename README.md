@@ -310,8 +310,3 @@ Sixty minutes, walked group by group — the same order as `foundry-patterns.ppt
 | Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–53 |
 | Operate & optimise | 11 | Caching & Cost | 53–57 |
 | Operate & optimise | 12 | Agent 365 & ROI | 57–60 |
-
-## Live-demo safety
-- **Pre-run every script once** and keep terminal output / portal screenshots as fallback.
-- Keep the Foundry portal **Agents** (versioned `rm-assistant-prompt`) and **Tracing** tabs pre-opened.
-- Secrets live in `.env`, never on screen.
