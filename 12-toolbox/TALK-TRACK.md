@@ -1,6 +1,6 @@
 # Pattern 12 — Centralized Toolboxes (one governed MCP endpoint)
 
-**Group:** Agent factory  ·  **Runs 5th of 12** in the run order
+**Group:** Agent construction & knowledge  ·  **Runs 5th of 12** in the run order
 
 **Slide title:** *Curate tools once. Every agent gets them — governed, versioned, discoverable.*
 
@@ -33,9 +33,10 @@ Say this explicitly or people will hear an echo of Pattern 3:
   holds the backend key and meters the call. It works for any client, Foundry or not.
 - **Pattern 12** governs *the whole catalogue inside Foundry* — one endpoint, versioned,
   discoverable, curated centrally.
-- **They compose.** Set `TOOLBOX_INCLUDE_WEBIQ=true` and Pattern 3's APIM-governed Web IQ
-  API becomes a tool *inside* the toolbox. The gateway still meters it; the toolbox hands
-  it to every agent.
+- **They compose.** Create a Foundry project connection to Pattern 3's APIM MCP route, set
+  `TOOLBOX_WEBIQ_CONNECTION_NAME`, then enable `TOOLBOX_INCLUDE_WEBIQ=true`. The toolbox
+  passes the project connection ID, not a raw key. The gateway still meters it; the toolbox
+  hands it to every agent.
 - **Pattern 4** is the loop that *uses* skills. Foundry **Skills** (preview) is where
   skills live server-side — versioned, immutable, attached to a toolbox.
 
@@ -65,6 +66,8 @@ Say this explicitly or people will hear an echo of Pattern 3:
 - A toolbox allows **one tool without a `name`**. Give every tool a `name` (or a
   `server_label`) or creation fails with `invalid_payload`.
 - Tools are namespaced by source: `microsoft_learn___microsoft_docs_search`.
+- Optional Web IQ credentials stay in the Foundry project connection. Pattern 12 never reads
+  `WEBIQ_APIM_KEY` or embeds headers in a toolbox tool definition.
 - Each run creates two more versions, so the numbers climb between runs. That's the
   feature, not a leak.
 - Requires the **Foundry User** role on the project and a supported region.

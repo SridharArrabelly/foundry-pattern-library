@@ -3,11 +3,12 @@ Pattern 5 — Multi-agent orchestration with Microsoft Agent Framework.
 
 A deliberately SIMPLE orchestration: a client request fans out concurrently to two
 specialist agents — a Portfolio Analyst and a Compliance Officer — and their views are
-aggregated. This is the pattern to reach for when you genuinely need parallel
+returned as one fan-in result. This is the pattern to reach for when you genuinely need parallel
 specialists or trust boundaries (contrast Pattern 4: default to one loop + N skills).
 
-Runs on the customer's Azure AI Gateway (OpenAI-compatible), so the whole orchestration
-rides the same gateway you already trust. Verified against agent-framework 1.9.0.
+This local entry point runs on the customer's Azure AI Gateway (OpenAI-compatible).
+The same workflow definition is hosted through Foundry's Responses protocol under
+./hosted/, so the orchestration is also a first-class managed endpoint.
 
 Run:  uv run python 05-multi-agent/orchestrator.py
 """
@@ -16,6 +17,14 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+HOSTED_SOURCE = os.path.join(
+    os.path.dirname(__file__),
+    "hosted",
+    "src",
+    "multi-agent-orchestrator",
+)
+sys.path.insert(0, HOSTED_SOURCE)
+
 from common.foundry import (
     GATEWAY_ENDPOINT,
     GATEWAY_KEY,
@@ -23,11 +32,7 @@ from common.foundry import (
     GATEWAY_V1_API_VERSION,
 )
 
-
-TASK = (
-    "Client C-1290 (Mr. Okafor, risk profile: Conservative) holds 90% equities. "
-    "He wants to add a leveraged tech structured product. Advise."
-)
+from workflow import TASK, create_workflow
 
 
 def build_client():
@@ -53,32 +58,8 @@ def build_client():
 
 
 async def main():
-    from agent_framework import Agent
-    from agent_framework.orchestrations import ConcurrentBuilder
-
     client = build_client()
-
-    analyst = Agent(
-        client,
-        name="portfolio_analyst",
-        description="Analyses holdings vs. benchmark and concentration risk.",
-        instructions=(
-            "You are a portfolio analyst. Assess concentration/benchmark risk in the "
-            "client's holdings and the proposed trade. Be specific and brief."
-        ),
-    )
-    compliance = Agent(
-        client,
-        name="compliance_officer",
-        description="Checks suitability, KYC/AML and MiFID II rules.",
-        instructions=(
-            "You are a compliance officer. Judge suitability vs. the client's risk profile "
-            "(a Conservative client must not exceed 70% equities). State APPROVE or BLOCK "
-            "with the rule cited. Be brief."
-        ),
-    )
-
-    workflow = ConcurrentBuilder(participants=[analyst, compliance]).build()
+    workflow = create_workflow(client)
 
     print(f"TASK: {TASK}\n")
     result = await workflow.run(TASK)
@@ -87,16 +68,11 @@ async def main():
         text = getattr(msg, "text", None) or str(msg)
         print(f"--- {who} ---\n{text}\n")
 
-    print("TALK TRACK: two specialists reasoned in parallel and were aggregated — no")
+    print("TALK TRACK: two specialists reasoned in parallel and returned one fan-in result — no")
     print("hand-wired handoff graph. Use this when parallelism or trust boundaries earn it;")
-    print("otherwise prefer one loop + N skills (Pattern 4). Same story, honest guidance.")
+    print("otherwise prefer one loop + N skills (Pattern 4). The same workflow is published")
+    print("through Foundry under 05-multi-agent/hosted as a managed Responses endpoint.")
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print(f"[run issue] {e}")
-        print("Check GATEWAY_ENDPOINT/GATEWAY_KEY in .env (needs the OpenAI-compatible base,")
-        print("often .../openai/v1). You can also swap OpenAIChatClient for agent_framework")
-        print("FoundryChatClient to run the specialists directly on the Foundry project.")
+    asyncio.run(main())

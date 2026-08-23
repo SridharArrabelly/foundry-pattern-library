@@ -28,15 +28,17 @@ az login                  # Entra ID auth (DefaultAzureCredential)
 Then run any pattern:
 
 ```powershell
-uv run python 01-wedge/call_gateway.py
-uv run python 02-agent-service/create_prompt_agent.py
+uv run python 01-ai-gateway-model-access/call_gateway.py
+uv run python 02-foundry-agent-service/create_prompt_agent.py
 uv run python 03-microsoft-iq/microsoft_iq.py
 # ... etc
 ```
 
-Auth is **Entra ID / keyless** everywhere: the gateway client and the Foundry project both
-use `DefaultAzureCredential`, so `az login` is all you need. Set keys in `.env` only if you
-prefer a key-based fallback.
+Auth is **keyless-first**: Foundry project and Search access use
+`DefaultAzureCredential`, and Pattern 1 uses Entra ID by default. The explicit exception is
+Pattern 3's Web IQ route on **APIM Basic v2**, where the caller uses an APIM subscription key.
+The separate upstream Web IQ credential remains on APIM and is never committed or sent to the
+client.
 
 Not every pattern is self-contained. **Pattern 4** runs from the companion
 **[skill-forge](https://github.com/SridharArrabelly/skill-forge)** repo (clone it alongside
@@ -90,36 +92,36 @@ Twelve patterns in four groups. Each group answers a different question, so you 
 with whichever one matches the problem in front of you. The deck and the run-of-show below
 walk the groups in order; the numbers are just stable folder IDs.
 
-### Control plane — make the gateway the single front door
+### Platform foundation & governance
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 1 | `01-wedge/` | Wedge → AI Hub Gateway / Citadel | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
-| 8 | `08-governance/` | Governance (Prompt Shields + Content Safety) | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
+| 1 | `01-ai-gateway-model-access/` | AI gateway & model access (APIM) | Foundry as a provider *behind* your Azure AI Gateway (APIM) | ✅ |
+| 8 | `08-ai-safety/` | AI safety (Prompt Shields + Content Safety) | Block a live jailbreak + XPIA injection; clean question passes (**live, keyless**) | ✅ |
 
-### Agent factory — build the agent
+### Agent construction & knowledge
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 2 | `02-agent-service/` | Agent Service (prompt and hosted agent) | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
-| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ, Fabric IQ and Work IQ complete the family (narrated, not wired) | ✅ |
+| 2 | `02-foundry-agent-service/` | Foundry Agent Service (prompt and hosted agents) | Two hosting models — prompt-based (managed File Search/vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
+| 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Run **Web IQ through APIM** and a separate, real **Azure AI Search tool** path through a Foundry agent; broader IQ layers are narrated accurately | ✅ |
 | 12 | `12-toolbox/` | Centralized Toolboxes (one governed MCP endpoint) | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
-| 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory (short-term + long-term) | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
-### Orchestration & interop — make agents work together
+### Orchestration & interoperability
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 5 | `05-multi-agent/` | Multi-agent orchestration (Agent Framework) | **Agent Framework**: orchestrator + 2 specialists | ✅ |
+| 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
+| 5 | `05-multi-agent/` | Multi-agent orchestration (Agent Framework) | Concurrent specialists exposed through a [**Foundry-hosted Responses endpoint**](05-multi-agent/hosted/) | ✅ |
 | 9 | `09-aws-interop/` | Cross-cloud interop (MCP / A2A) | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
 
-### Operate & optimise — run it in production
+### Lifecycle, assurance & operations
 
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
-| 6 | `06-observability/` | Observability & tracing (OpenTelemetry) | Same OpenTelemetry trace in **both** the Foundry portal *Tracing* tab **and** App Insights — and, with BYOM, the same call in the gateway metrics. Cost per agent and version is a KQL query on the same spans | ✅ |
-| 7 | `07-evaluations/` | Evaluation → optimization (CI gate) | Scorecard + CI gate; a wrong row fails the gate | ✅ |
+| 7 | `07-evaluation-release-gate/` | Evaluation & release gate | Scorecard + CI gate; a wrong row fails the gate | ✅ |
+| 6 | `06-observability/` | Observability & tracing (OpenTelemetry) | Metadata-only OpenTelemetry traces in **both** Foundry *Tracing* and App Insights; prompt/completion bodies require explicit opt-in | ✅ |
 | 11 | `11-caching-cost/` | Cost & latency (prompt cache + Model Router) | Prompt-cache hit on the repeat call (cached tokens, ~4× faster) + Model Router downshift, through the gateway | ✅ |
 
 ### The gateway thread
@@ -144,8 +146,9 @@ existing gateway, cloud, or agents.
 One architecture per pattern — the same diagrams that appear on each slide of
 `foundry-patterns.pptx`.
 
-### 1 · Wedge → AI Hub Gateway / Citadel
-Keyless via Entra ID — 401 without a token, 200 with. Foundry sits beside your existing providers behind the gateway.
+### 1 · AI gateway & model access (APIM)
+Keyless via Entra ID by default — 401 without a token, 200 with. Foundry sits beside
+existing providers behind the enterprise gateway.
 
 ```mermaid
 flowchart LR
@@ -154,7 +157,7 @@ flowchart LR
   G -.->|"existing provider"| BR["Your other cloud<br/>(e.g., AWS Bedrock)"]
 ```
 
-### 8 · Governance (Prompt Shields + Content Safety)
+### 8 · AI safety (Prompt Shields + Content Safety)
 Prompt Shields blocks a direct jailbreak and an injection hidden in a client document, while a clean question passes — **live and keyless** on the Foundry AI Services account (no separate resource).
 
 ```mermaid
@@ -166,14 +169,15 @@ flowchart LR
   AG -.->|"governed by"| GOV["Entra Agent ID · Purview DSPM for AI"]
 ```
 
-### 2 · Agent Service (prompt and hosted agent)
+### 2 · Foundry Agent Service (prompt and hosted agents)
 **Two ways to run an agent on Foundry**, same Private Banking scenario, both with a
-governable Entra Agent ID — see [`02-agent-service/`](02-agent-service/):
+governable Entra Agent ID — see
+[`02-foundry-agent-service/`](02-foundry-agent-service/):
 - **A. Prompt-based** (`create_prompt_agent.py`) — declarative: model + instructions + tools.
   Managed **vector store** (File Search RAG) + a **function tool**, created with the new
   unified SDK (`AIProjectClient.agents.create_version(PromptAgentDefinition(...))`) and
   invoked via the **Responses** API. A first-class *versioned* agent in the portal.
-- **B. Hosted (BYO code)** ([`hosted/`](02-agent-service/hosted/)) — your **Agent
+- **B. Hosted (BYO code)** ([`hosted/`](02-foundry-agent-service/hosted/)) — your **Agent
   Framework** container, run by Foundry on managed compute, with its own **dedicated**
   Entra Agent ID and endpoint (Responses protocol on `:8088`).
 
@@ -192,31 +196,35 @@ flowchart TB
 ```
 
 ### 3 · Microsoft IQ — the intelligence layer
-Microsoft IQ is the intelligence layer, in four parts: **Web IQ** (live web),
-**Foundry IQ** (enterprise knowledge), **Fabric IQ** (business data and KPIs) and **Work IQ**
-(M365 org context). This pattern runs
-**Web IQ** live, published as **our own MCP API on APIM** — the gateway authenticates the
-caller, injects the Web IQ key from a secret it holds, and meters every tool call, so no Web
-IQ credential ever sits client-side. **Foundry IQ, Fabric IQ and Work IQ are narrated, not
-wired up here** — they're dashed below: real layers of the same story, but this repo runs the
-Web IQ leg only.
+This pattern runs **two live grounding implementations**:
+
+- **Web IQ** through the existing APIM MCP route. APIM Basic v2 authenticates the caller with
+  a subscription key, retains the separate upstream Web IQ credential, and meters each call.
+- **Azure AI Search** through the official `AzureAISearchTool` on a versioned Foundry agent,
+  using a project connection and `DefaultAzureCredential`, with cited enterprise content.
+
+Pattern 2's managed File Search/vector store is deliberately not called Azure AI Search.
+**Foundry IQ managed knowledge bases**, **Fabric IQ**, and **Work IQ** are broader product
+layers and remain narrated, shown with dotted edges below.
 
 ```mermaid
-flowchart LR
-  AG["MCP client<br/>Foundry agent · Copilot · Bedrock"] -->|subscription key only| GW["APIM MCP API<br/>authN · quota"]
+flowchart TB
+  AG["Agent / MCP client"] -->|"APIM Basic v2<br/>subscription key"| GW["APIM MCP API<br/>authN · quota"]
   SEC["APIM secret<br/>webiq-api-key"] -. injected inbound .-> GW
   GW --> W["Web IQ<br/>cited live web"]
-  GW -.-> FI["Foundry IQ<br/>enterprise knowledge"]
-  GW -.-> FB["Fabric IQ<br/>business data · KPIs"]
-  GW -.-> WK["Work IQ<br/>M365 org context"]
+  AG -->|"DefaultAzureCredential"| FA["Foundry prompt agent"]
+  FA --> AS["Azure AI Search tool<br/>cited enterprise index"]
+  FA -.-> FI["Foundry IQ<br/>managed knowledge bases"]
+  FA -.-> FB["Fabric IQ<br/>business data · KPIs"]
+  FA -.-> WK["Work IQ<br/>M365 org context"]
 ```
 
 ### 12 · Centralized Toolboxes (one governed MCP endpoint)
 Curate tools once; every agent consumes them from one MCP endpoint. Versions are promoted
 centrally, so the tool plane changes without redeploying an agent. **Tool search** hides N
 tool definitions behind two meta-tools, so a toolbox scales without flooding the context
-window. Pattern 3's APIM-governed Web IQ API can sit *inside* the toolbox — the gateway
-still meters it.
+window. Pattern 3's APIM-governed Web IQ API can sit *inside* the toolbox by project
+connection ID — the toolbox never reads the APIM key, and the gateway still meters it.
 
 ```mermaid
 flowchart LR
@@ -227,6 +235,17 @@ flowchart LR
   TB --> CI["Code Interpreter"]
   TB --> TS["Tool search<br/>N definitions → 2 meta-tools"]
   TB -. "promote v2 → default" .-> TB
+```
+
+### 10 · Memory (short-term + long-term)
+Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
+
+```mermaid
+flowchart LR
+  U["RM / client"] --> AG["Foundry agent<br/>+ MemorySearchPreviewTool"]
+  AG -->|"same session"| C["Conversation<br/>(short-term)"]
+  AG -->|"across sessions"| MS["Memory Store<br/>per-user scope · TTL<br/>(long-term)"]
+  MS -.->|"embeddings"| EMB["text-embedding-3-small"]
 ```
 
 ### 4 · Agentic Loop (build skills, not agents)
@@ -241,23 +260,15 @@ flowchart LR
   EN["Engine: Copilot SDK BYOM<br/>your Azure model + billing"] -.-> OB
 ```
 
-### 10 · Memory (short-term + long-term)
-Short-term = a Conversation (recall inside one session). Long-term = a per-user Memory Store (recall across sessions). Keyless; you didn't build a state store or a vector DB.
-
-```mermaid
-flowchart LR
-  U["RM / client"] --> AG["Foundry agent<br/>+ MemorySearchPreviewTool"]
-  AG -->|"same session"| C["Conversation<br/>(short-term)"]
-  AG -->|"across sessions"| MS["Memory Store<br/>per-user scope · TTL<br/>(long-term)"]
-  MS -.->|"embeddings"| EMB["text-embedding-3-small"]
-```
-
 ### 5 · Multi-agent orchestration (Agent Framework)
-Fan out to specialists concurrently, then aggregate — Compliance can return BLOCK.
+Fan out to specialists concurrently and return the fan-in result through a
+Foundry-managed hosted-agent endpoint.
 
 ```mermaid
 flowchart LR
-  O["Orchestrator"] -->|"concurrent"| PA["Portfolio Analyst"]
+  C["Caller"] --> EP["Foundry-hosted<br/>Responses endpoint"]
+  EP --> O["Orchestrator"]
+  O -->|"concurrent"| PA["Portfolio Analyst"]
   O --> CO["Compliance Officer"]
   PA --> AGG["Aggregate"]
   CO --> AGG
@@ -282,21 +293,10 @@ flowchart LR
   FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
 ```
 
-### 6 · Observability & tracing (OpenTelemetry)
-Create a **real Foundry agent**, run one traced turn, and the same OTel trace lands in the Foundry portal (Agents + Tracing) **and** App Insights — portable, no lock-in.
-
-```mermaid
-flowchart TB
-  OR["Foundry agent<br/>rm-assistant-traced"] --> AGx["invoke_agent"] --> TL["Tool"] --> MD["Model"]
-  AGx -->|"OTel spans<br/>tokens · latency · cost"| OT["OpenTelemetry"]
-  TL --> OT
-  OT --> P["Foundry — Agents + Tracing"]
-  OT --> AI["Application Insights"]
-  OT -.-> DG["Datadog / Grafana"]
-```
-
-### 7 · Evaluation → optimization (CI gate)
-Score the golden set in **Foundry's cloud eval service**; a wrong "suitable" answer fails groundedness and the CI gate blocks the PR. Results show in the terminal *and* the Foundry **Evaluations** tab.
+### 7 · Evaluation & release gate
+Score the golden set in **Foundry's cloud eval service**; a wrong "suitable" answer fails
+groundedness and the CI gate blocks the PR. Results show in the terminal *and* the Foundry
+**Evaluations** tab.
 
 ```mermaid
 flowchart LR
@@ -304,6 +304,22 @@ flowchart LR
   GT -->|"wrong 'suitable'"| FL["FAIL → blocks merge"]
   GT -->|"all pass"| OK["Merge"]
   EV --> FE["Foundry — Evaluations tab"]
+```
+
+### 6 · Observability & tracing (OpenTelemetry)
+Create a **real Foundry agent**, run one traced turn, and the same metadata-only OTel trace
+lands in Foundry (Agents + Tracing) **and** App Insights. Agent, model, tool, token and latency
+data is preserved without exporting prompt/completion bodies by default. Set
+`TRACE_CONTENT_RECORDING=true` only when telemetry access and retention are approved.
+
+```mermaid
+flowchart TB
+  OR["Foundry agent<br/>rm-assistant-traced"] --> AGx["invoke_agent"] --> TL["Tool"] --> MD["Model"]
+  AGx -->|"OTel spans<br/>metadata · tokens · latency"| OT["OpenTelemetry"]
+  TL --> OT
+  OT --> P["Foundry — Agents + Tracing"]
+  OT --> AI["Application Insights"]
+  OT -.-> DG["Datadog / Grafana"]
 ```
 
 ### 11 · Cost & latency (prompt cache + Model Router)
@@ -323,15 +339,15 @@ the room; the order is what matters.
 
 | Group | # | Pattern |
 |-------|---|---------|
-| Control plane | 1 | Wedge → AI Hub Gateway / Citadel |
-| Control plane | 8 | Governance (Prompt Shields + Content Safety) |
-| Agent factory | 2 | Agent Service (prompt and hosted agent) |
-| Agent factory | 3 | Microsoft IQ — the intelligence layer |
-| Agent factory | 12 | Centralized Toolboxes (one governed MCP endpoint) |
-| Agent factory | 4 | Agentic Loop (build skills, not agents) |
-| Agent factory | 10 | Memory (short-term + long-term) |
-| Orchestration & interop | 5 | Multi-agent orchestration (Agent Framework) |
-| Orchestration & interop | 9 | Cross-cloud interop (MCP / A2A) |
-| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) |
-| Operate & optimise | 7 | Evaluation → optimization (CI gate) |
-| Operate & optimise | 11 | Cost & latency (prompt cache + Model Router) |
+| Platform foundation & governance | 1 | AI gateway & model access (APIM) |
+| Platform foundation & governance | 8 | AI safety (Prompt Shields + Content Safety) |
+| Agent construction & knowledge | 2 | Foundry Agent Service (prompt and hosted agents) |
+| Agent construction & knowledge | 3 | Microsoft IQ — the intelligence layer |
+| Agent construction & knowledge | 12 | Centralized Toolboxes (one governed MCP endpoint) |
+| Agent construction & knowledge | 10 | Memory (short-term + long-term) |
+| Orchestration & interoperability | 4 | Agentic Loop (build skills, not agents) |
+| Orchestration & interoperability | 5 | Multi-agent orchestration (Agent Framework) |
+| Orchestration & interoperability | 9 | Cross-cloud interop (MCP / A2A) |
+| Lifecycle, assurance & operations | 7 | Evaluation & release gate |
+| Lifecycle, assurance & operations | 6 | Observability & tracing (OpenTelemetry) |
+| Lifecycle, assurance & operations | 11 | Cost & latency (prompt cache + Model Router) |

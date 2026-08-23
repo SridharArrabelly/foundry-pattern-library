@@ -1,6 +1,6 @@
 # Pattern 6 — Observability & tracing (OpenTelemetry)
 
-**Group:** Operate & optimise  ·  **Runs 10th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 11th of 12** in the run order
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 
@@ -14,8 +14,9 @@
 >   3. **Application Insights** — Transaction search / Logs (KQL) on the *same* data.
 >
 > The waterfall reads: `rm-observability-demo → invoke_agent → get_client_holdings →
-> chat gpt-5.4-mini`, each span carrying **model, prompt + completion, token counts,
-> latency and the tool name**. That's how you debug a non-deterministic agent and
+> chat gpt-5.4-mini`, each span carrying **model, token counts, latency and the tool
+> name**. Prompt and completion bodies stay out by default. That's how you debug a
+> non-deterministic agent and
 > attribute spend.
 >
 > Two things that are hard to build yourself. First, it's **agent-aware** — spans
@@ -71,14 +72,15 @@ that's hard to build. Agent 365 adds the org-wide inventory, identity and policy
 2. Portal: **Foundry → Agents → rm-assistant-traced** — show it exists; optionally chat with it.
 3. Portal: **Foundry → Tracing** → open the run's waterfall (server-side spans).
 4. **App Insights → Transaction search / Logs** → same trace, ~1–2 min ingestion lag.
-5. Point at a model span: tokens, latency, prompt/completion. Mention the one-line OTLP dual-export.
+5. Point at a model span: agent/model/tool metadata, tokens and latency. Mention the one-line
+   OTLP dual-export.
 6. With `AGENT_MODEL_CONNECTION` set, show the same run in the **gateway metrics** (BYOM).
 
 ## Notes
-- Two env flags must be ON **before** instrumentation (the script sets them):
-  `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` (prompt/completion text on spans) and
-  `AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING=true` (emit the GenAI semantic spans). Without the
-  second, App Insights logs a warning and you get only generic spans.
+- Metadata-only is the enterprise-safe default. `AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING=true`
+  keeps agent/model/tool/token/latency semantic spans on. Prompt/completion content is exported
+  only when `TRACE_CONTENT_RECORDING=true`; doing so makes sensitive content subject to the
+  telemetry backend's access controls and retention policy.
 - Benign on a laptop: red `169.254.169.254` / IMDS / WinError 10051 tracebacks are the Azure
   Monitor VM resource detector + managed-identity probe looking for cloud metadata. Harmless,
   and absent on Azure compute.

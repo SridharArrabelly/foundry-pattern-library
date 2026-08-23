@@ -1,6 +1,6 @@
 # Pattern 10 — Memory (short-term + long-term)
 
-**Group:** Agent factory  ·  **Runs 7th of 12** in the run order
+**Group:** Agent construction & knowledge  ·  **Runs 6th of 12** in the run order
 
 **Slide title:** *Memory is a platform primitive — not a database you build.*
 
@@ -73,4 +73,3 @@ at 20% and no crypto ... (rebalance honours the remembered preference)
 > The point: the **new session** answer respects "20% cap / no crypto" though it was
 > never re-told — recall came from the long-term store. (Store name says "reused" on
 > re-runs — that's fine.)
-

@@ -17,7 +17,7 @@ new agentic workloads land for the depth a gateway alone can't give.
 
 1. **Foundry behind your gateway** — your gateway (LiteLLM / APIM / your own) fronts every
    provider; new agentic workloads land on Foundry for the eval/governance/identity depth
-   (Pattern 1).
+   (Pattern 1, `01-ai-gateway-model-access/`).
 2. **Cross-cloud tool calls via MCP** — a Foundry agent invokes a tool hosted on another cloud
    (e.g., an AWS Lambda, see `09-aws-interop/mcp_aws_lambda_server.py`), and vice-versa.
 3. **A2A hand-off** — expose an agent on another platform to a Foundry orchestrator (or the
@@ -105,6 +105,11 @@ Pattern 3 publishes Web IQ as our own MCP API on APIM, giving the gateway three 
   inbound, so it never reaches a client, a `.env`, or a source file;
 - **meter usage** — `rate-limit-by-key` runs *before* the request is proxied upstream.
 
+This is the documented keyless-first exception in the catalog: APIM **Basic v2** does not
+provide the higher-tier keyless route used by the model gateway, so the Pattern 3 caller
+uses an APIM subscription key. The separate upstream Web IQ credential still lives only in
+the APIM secret named value. Higher-tier APIM is not required for this sample.
+
 Measured on this APIM: no key → **401**, bogus key → **401**, valid key → **200** (credential added
 by the gateway), calls past the limit → **429**.
 
@@ -149,6 +154,31 @@ The policy that does the work:
     counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />
 </inbound>
 ```
+
+### Enterprise grounding with Azure AI Search
+
+Pattern 3 also runs a separate enterprise-grounding leg through the official
+`AzureAISearchTool`. This is intentionally distinct from Pattern 2's managed File
+Search/vector store:
+
+1. Create or reuse an Azure AI Search connection on the Foundry project.
+2. Give the Foundry project's managed identity **Search Index Data Reader** on the Search
+   service.
+3. Index enterprise content with retrievable text and source fields.
+4. Set `AI_SEARCH_CONNECTION_NAME` and `AI_SEARCH_INDEX_NAME`.
+5. Run `uv run python 03-microsoft-iq/microsoft_iq.py --leg search`.
+
+The client authenticates to Foundry with `DefaultAzureCredential`; Foundry uses the project
+connection to query Search server-side and returns citation annotations. Foundry IQ managed
+knowledge bases are a broader layer and are not relabeled as this direct Search tool path.
+
+### Put Web IQ in a Foundry Toolbox without exposing its key
+
+Pattern 12 does not read `WEBIQ_APIM_KEY`. Create a Foundry project connection whose target
+is the APIM MCP endpoint and whose server-side credential is the Basic v2 subscription key.
+Set `TOOLBOX_WEBIQ_CONNECTION_NAME` and `TOOLBOX_INCLUDE_WEBIQ=true`; the toolbox definition
+passes `project_connection_id` to `MCPToolboxTool`. This keeps credential custody in the
+project connection while APIM continues to hold the separate upstream Web IQ key.
 
 
 

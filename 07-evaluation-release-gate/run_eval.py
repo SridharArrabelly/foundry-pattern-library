@@ -1,5 +1,5 @@
 """
-Pattern 7 — Eval-driven development (CLOUD evaluation on Foundry).
+Pattern 7 — Evaluation & release gate (CLOUD evaluation on Foundry).
 
 Runs the golden set through Foundry's CLOUD evaluation service so the run shows up in
 BOTH places:
@@ -18,7 +18,7 @@ How it works (new Foundry = OpenAI-compatible /evals API):
      server-side, keyless (Entra via DefaultAzureCredential).
   4. Poll, print the scorecard, print the portal report URL, gate on groundedness.
 
-Run:  uv run python 07-evaluations/run_eval.py
+Run:  uv run python 07-evaluation-release-gate/run_eval.py
 Exit code is non-zero if any groundedness row fails (this is your CI gate).
 """
 import os

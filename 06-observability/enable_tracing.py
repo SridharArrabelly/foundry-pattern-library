@@ -15,7 +15,9 @@ backend (Datadog/Grafana/Elastic) — no lock-in.
 Why a Foundry agent (not an in-process one): a Foundry agent has a portal identity and
 Foundry traces its runs server-side to the project's App Insights. We ALSO wire the
 client-side Azure Monitor exporter so the whole turn (incl. our parent span + the tool
-call we run locally) is captured with prompts, completions and token counts.
+call we run locally) is captured with agent/model/tool metadata, token counts and latency.
+Prompt and completion content is metadata-only by default; set
+TRACE_CONTENT_RECORDING=true only after approving the data-sensitivity and retention impact.
 
 Run:  uv run python 06-observability/enable_tracing.py
 Then open the agent in the portal, and the trace in BOTH the Tracing tab and App Insights.
@@ -63,16 +65,28 @@ HOLDINGS_TOOL = FunctionTool(
 
 
 def enable_tracing():
-    """Send spans to the project's App Insights, with GenAI content on the spans."""
+    """Send metadata-only spans unless content recording is explicitly enabled."""
     conn = app_insights_connection_string()
     print("Resolved the Application Insights connected to the Foundry project.")
 
-    # Both flags must be set BEFORE instrumentation:
-    #   * GEN_AI_CONTENT_RECORDING -> put prompt/completion text on spans
-    #   * EXPERIMENTAL_ENABLE_GENAI_TRACING -> emit the GenAI semantic spans
-    #     (model, tokens, tool calls). Without it you only get generic spans.
-    os.environ.setdefault("AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED", "true")
+    record_content = os.environ.get("TRACE_CONTENT_RECORDING", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    # Set before instrumentation. Semantic spans remain enabled in both modes; only
+    # prompt/completion bodies are gated by the explicit enterprise opt-in.
+    os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] = (
+        "true" if record_content else "false"
+    )
     os.environ.setdefault("AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING", "true")
+    if record_content:
+        print(
+            "Trace content recording ENABLED: prompts/completions are exported and inherit "
+            "the telemetry backend's access and retention policy."
+        )
+    else:
+        print("Trace content recording disabled: exporting metadata, tokens and latency only.")
 
     from azure.monitor.opentelemetry import configure_azure_monitor
 
@@ -151,7 +165,11 @@ def main():
     print(f"  1. Foundry portal -> your project -> Agents -> {AGENT_NAME} (chat with it live).")
     print("  2. Foundry portal -> your project -> 'Tracing' tab (agent waterfall).")
     print("  3. Application Insights -> Transaction search / Logs (may take ~1-2 min).")
-    print("Each span carries: model, prompt+completion, token counts, latency, tool name.")
+    print("Each span carries: model, token counts, latency and tool name.")
+    print(
+        "Prompt/completion bodies are "
+        + ("included (explicit opt-in)." if os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] == "true" else "excluded (enterprise-safe default).")
+    )
     print("Waterfall: rm-observability-demo -> agent run -> get_client_holdings -> model call.")
 
     print("\nNO LOCK-IN: it's OpenTelemetry. To ALSO ship to your own collector, set")

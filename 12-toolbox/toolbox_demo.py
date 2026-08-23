@@ -65,11 +65,10 @@ TOOLBOX_SCOPE = "https://ai.azure.com/.default"
 # a 429 and stall the demo. Turn it on to tell the composition story; leave it off
 # for a run that only depends on the public Microsoft Learn MCP server.
 INCLUDE_WEBIQ = (env("TOOLBOX_INCLUDE_WEBIQ", "") or "").strip().lower() in ("1", "true", "yes")
-WEBIQ_MCP_URL = env("WEBIQ_MCP_URL")
-WEBIQ_APIM_KEY = env("WEBIQ_APIM_KEY", "")
+WEBIQ_CONNECTION_NAME = env("TOOLBOX_WEBIQ_CONNECTION_NAME")
 
 
-def curated_tools():
+def curated_tools(project):
     """The tools a Private Banking RM assistant should have, curated once."""
     tools = [
         # Public and unauthenticated, so this pattern needs no extra infrastructure.
@@ -86,14 +85,18 @@ def curated_tools():
             container={"type": "auto"},
         ),
     ]
-    if INCLUDE_WEBIQ and WEBIQ_MCP_URL:
-        headers = {"Ocp-Apim-Subscription-Key": WEBIQ_APIM_KEY} if WEBIQ_APIM_KEY else None
+    if INCLUDE_WEBIQ:
+        if not WEBIQ_CONNECTION_NAME:
+            raise SystemExit(
+                "Set TOOLBOX_WEBIQ_CONNECTION_NAME to a Foundry project connection "
+                "that targets the APIM Web IQ MCP route"
+            )
+        connection = project.connections.get(WEBIQ_CONNECTION_NAME)
         tools.append(
             MCPToolboxTool(
                 server_label="web_iq",
-                server_url=WEBIQ_MCP_URL,
+                project_connection_id=connection.id,
                 server_description="Web IQ grounding, governed by our APIM policy (Pattern 3).",
-                headers=headers,
                 require_approval="never",
             )
         )
@@ -152,7 +155,7 @@ async def main():
     headers = {"Authorization": f"Bearer {cred.get_token(TOOLBOX_SCOPE).token}"}
 
     with project_client() as project:
-        tools = curated_tools()
+        tools = curated_tools(project)
         print(f"Curating {len(tools)} tools into toolbox '{TOOLBOX_NAME}':")
         for t in tools:
             print(f"  - {label(t)} ({t['type']})")

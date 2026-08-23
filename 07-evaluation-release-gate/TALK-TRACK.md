@@ -1,6 +1,6 @@
-# Pattern 7 — Evaluation → optimization (CI gate)
+# Pattern 7 — Evaluation & release gate
 
-**Group:** Operate & optimise  ·  **Runs 11th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 10th of 12** in the run order
 
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 
@@ -27,7 +27,7 @@
 > "If you can't score it, you can't ship it safely — and you certainly can't optimize it."
 
 ## Running it
-1. `uv run python 07-evaluations/run_eval.py` → judges run in **Foundry cloud**; terminal
+1. `uv run python 07-evaluation-release-gate/run_eval.py` → judges run in **Foundry cloud**; terminal
    prints the scorecard: groundedness **4 passed / 1 failed** (the planted wrong row) →
    **GATE FAILED** (exit 1).
 2. Open the printed **report URL** (or Foundry → **Evaluations → private-banking-suitability**)
@@ -49,5 +49,4 @@ The run scores in **Foundry's cloud evaluation service** (`openai_client.evals.c
 (per-row groundedness / relevance / coherence + reasoning). Judges run server-side (no local
 compute); auth is keyless (Entra via `DefaultAzureCredential`, pre-warmed with a longer CLI
 timeout so the token calls don't flake).
-
 

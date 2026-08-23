@@ -1,5 +1,6 @@
 """
-Pattern 2 (hosted) — a REAL Foundry *hosted agent*.
+Pattern 2 — Foundry Agent Service (prompt and hosted agents), model B:
+a real Foundry *hosted agent*.
 
 This is YOUR code (Microsoft Agent Framework) packaged in a container and run by
 Foundry Agent Service. The platform pulls the image, provisions compute, assigns the
