@@ -4,8 +4,8 @@
 
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 
-## The 60-second track
-> "Your homegrown factory has to build the boring-but-hard parts: conversation state,
+## In brief
+> "Building an agent runtime yourself means building the boring-but-hard parts: conversation state,
 > tool orchestration, retries, a vector store for RAG, and an identity for the agent.
 > Foundry's **Agent Service** ships all of that as a managed primitive — Build
 > 2026 calls it *'the primitive for agents the way containers were for cloud-native
@@ -13,7 +13,7 @@
 >
 > And there are **two ways to run an agent on Foundry** — I'll show both."
 
-## Two hosting models (say this out loud)
+## Two hosting models
 | | **A. Prompt-based agent** (`create_prompt_agent.py`) | **B. Hosted agent** (`hosted/`) |
 |---|---|---|
 | You provide | model + instructions + tools (config) | your **code / container** (any framework) |
@@ -65,7 +65,7 @@ Set `AGENT_MODEL_CONNECTION` in `.env` to the connection name; `agent_model()` i
 `common/foundry.py` qualifies the model id. Leave it blank to keep agents on the direct
 Foundry route. Full setup in [`docs/coexistence.md`](../docs/coexistence.md).
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Managed threads / memory** — no bespoke state store.
 - **Server-side tool orchestration** + auto function calling.
 - **Managed vector store** for RAG (File Search) — no separate vector DB to run.
@@ -73,11 +73,11 @@ Foundry route. Full setup in [`docs/coexistence.md`](../docs/coexistence.md).
   that deprovisions when idle (no always-on cost).
 - **Entra Agent ID** — governable identity per agent, not a shared cloud IAM role.
 
-## Money line
+## The one-liner
 > "You didn't build a runtime, a vector store, a hosting plane, and an identity system.
 > You called an API — or handed us a container."
 
-## Where it pulls ahead
+## Where Foundry goes further
 Most managed agent runtimes cover the declarative assistant model. Foundry adds
 **bring-your-own-code hosted agents, native MCP tools, a managed vector store + enterprise
 search, and a dedicated Entra Agent ID** (next patterns).

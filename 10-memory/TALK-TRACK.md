@@ -4,8 +4,8 @@
 
 **Slide title:** *Memory is a platform primitive — not a database you build.*
 
-## The 60-second track
-> "Your homegrown factory bolts on a state store and a vector DB to make an agent
+## In brief
+> "The usual approach bolts a state store and a vector DB onto an agent to make it
 > *remember*. Foundry gives you two kinds of memory as a primitive. **Short-term** is
 > a Conversation — inside one session the agent recalls what the client just said.
 > [run it] Watch the second answer honour 'max 20% equities, no crypto' with no
@@ -15,17 +15,17 @@
 > a scope and a TTL. And because it's scoped per user, *forget* is one call —
 > right-to-be-forgotten for a bank."
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Managed memory** — extraction, consolidation, retrieval, TTL are Foundry's job.
 - **Per-user scope** — isolation + GDPR *forget* (`delete_scope`) out of the box.
 - **New API, no glue** — `beta.memory_stores` + `MemorySearchPreviewTool` + the
   Responses/Conversations API. No thread-juggling, no bespoke embeddings pipeline.
 
-## Money line
+## The one-liner
 > "Short-term is the session. Long-term is the store. You configured a scope and a
 > TTL — you didn't build a memory system."
 
-## Demo steps
+## Running it
 1. `uv run python 10-memory/memory_agent.py`.
 2. **Short-term:** the follow-up in the same conversation already respects the
    stated preference — no context re-passed.

@@ -4,6 +4,44 @@ Thirteen runnable Microsoft Foundry patterns, told through **one Private Banking
 (a wealth-management Relationship Manager assistant), and positioned to run **alongside
 your existing gateway and cloud** — not instead of them.
 
+Each pattern is a folder you can run on its own against your own Foundry project. Nothing
+here is a mock: if a capability isn't wired up, the pattern says so rather than pretending.
+
+## Getting started
+
+You'll need an [Azure subscription](https://azure.microsoft.com/free/), a
+[Microsoft Foundry project](https://learn.microsoft.com/azure/ai-foundry/how-to/create-projects)
+with a chat model deployed, and [uv](https://docs.astral.sh/uv/).
+
+```powershell
+cp .env.example .env      # then fill in your own Foundry project endpoint
+uv sync                   # resolves Python 3.12 + deps automatically
+az login                  # Entra ID auth (DefaultAzureCredential)
+```
+
+Then run any pattern:
+
+```powershell
+uv run python 01-wedge/call_gateway.py
+uv run python 02-agent-service/create_prompt_agent.py
+uv run python 03-microsoft-iq/microsoft_iq.py
+# ... etc
+```
+
+Auth is **Entra ID / keyless** everywhere: the gateway client and the Foundry project both
+use `DefaultAzureCredential`, so `az login` is all you need. Set keys in `.env` only if you
+prefer a key-based fallback.
+
+Not every pattern is self-contained. **Pattern 4** runs from the companion
+**[skill-forge](https://github.com/SridharArrabelly/skill-forge)** repo (clone it alongside
+this one as `../skill-forge`), and **Pattern 9** is a code walkthrough rather than a live
+call. The table below marks which is which.
+
+> **Multi-tenant tip:** `.env` pins `AZURE_TENANT_ID` to your Foundry resource's tenant.
+> If you're signed into more than one tenant, this stops `DefaultAzureCredential` from
+> grabbing a token for the wrong one (a "token tenant does not match resource tenant"
+> error the eval workers in Pattern 7 are sensitive to). Tenant IDs aren't secrets.
+
 ## The story
 
 > **Build in GitHub → Run & optimize in Foundry → Reach users in M365.**
@@ -14,17 +52,18 @@ your existing gateway and cloud** — not instead of them.
 Close on the Build 2026 triad: **Foundry** (platform) + **Citadel** (governance at scale,
 Foundry + APIM) + **Agentic Patterns** (business value).
 
-## Reuse for any customer
+## Adapting it
 
 This is a **general-purpose Foundry pattern library**, not a pitch against any one vendor.
-To run it for a different customer, swap three variables — the patterns don't change:
+To retell it for a different context, swap three variables — the patterns don't change:
 
-- **Gateway** — LiteLLM, Azure APIM, or their own (the demo gateway here is Azure APIM).
-- **Other cloud / providers** — AWS Bedrock is the running *example* in Pattern 9; swap in whatever they run.
+- **Gateway** — LiteLLM, Azure APIM, or your own (the gateway used here is Azure APIM).
+- **Other cloud / providers** — AWS Bedrock is the running *example* in Pattern 9; swap in
+  whatever you already run.
 - **Scenario** — Private Banking is the default narrative; any industry works (the agent
   instructions and golden set are the only per-scenario bits).
 
-See [`docs/coexistence.md`](docs/coexistence.md) for the "coexist with what they already have" story.
+See [`docs/coexistence.md`](docs/coexistence.md) for coexisting with what you already have.
 
 ## Architecture at a glance
 
@@ -41,9 +80,9 @@ flowchart LR
 
 ## What's inside
 
-Thirteen patterns in four groups. Each group answers a different question, and you can enter at
-whichever one the customer is actually asking about. The deck and the suggested run-of-show
-below walk the groups in order; the numbers are just stable folder IDs.
+Thirteen patterns in four groups. Each group answers a different question, so you can start
+with whichever one matches the problem in front of you. The deck and the run-of-show below
+walk the groups in order; the numbers are just stable folder IDs.
 
 ### Control plane — make the gateway the single front door
 
@@ -91,8 +130,8 @@ Control isn't one pattern — it runs through three planes, each routed a differ
 Patterns 7 and 10 stay on the direct route on purpose — see
 [`docs/coexistence.md`](docs/coexistence.md) for why.
 
-Every pattern folder has a `TALK-TRACK.md` — the 60-second script + "what it beats in a
-homegrown factory." Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
+Every pattern folder has a `TALK-TRACK.md` — a short narrative for the pattern plus what
+Foundry gives you there. Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
 existing gateway, cloud, or agents.
 
 ## Pattern diagrams
@@ -281,36 +320,6 @@ flowchart LR
   TR["App Insights traces<br/>(Pattern 6)"] -.->|"KQL by agent/version"| ROI
   A365["Agent 365 (portal)"] -->|"org-wide inventory · Entra Agent ID · policy"| ROI
 ```
-
-## Setup (uv)
-
-```powershell
-cp .env.example .env      # values are pre-filled for the Foundry project
-uv sync                   # resolves Python 3.12 + deps automatically
-az login                  # Entra ID auth (DefaultAzureCredential) — gateway + Foundry
-```
-
-Auth is **Entra ID / keyless** everywhere: the gateway client (Pattern 1/5) and the
-Foundry project both use `DefaultAzureCredential`, so `az login` is all you need. Set
-keys in `.env` only if you prefer key-based fallback.
-
-> **Multi-tenant tip:** `.env` pins `AZURE_TENANT_ID` to the Foundry resource's tenant.
-> If you're signed into more than one tenant, this stops `DefaultAzureCredential` from
-> grabbing a token for the wrong one (a "token tenant does not match resource tenant"
-> error the eval workers in Pattern 7 are sensitive to). Tenant IDs aren't secrets.
-
-Run any pattern:
-
-```powershell
-uv run python 01-wedge/call_gateway.py
-uv run python 02-agent-service/create_prompt_agent.py
-# ... etc
-```
-
-Patterns 3 + 4 run from the **[skill-forge](https://github.com/SridharArrabelly/skill-forge)**
-repo (clone it next to this one as `../skill-forge`): `uv run skill-forge`,
-then use the engine selector (hand-rolled loop → Copilot SDK → Copilot SDK BYOM → Agent
-Framework) and the skill chips.
 
 ## Suggested run-of-show
 

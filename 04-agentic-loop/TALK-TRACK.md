@@ -7,7 +7,7 @@
 **Runs from `../skill-forge`** — a from-scratch implementation of the exact pattern
 Microsoft shipped at Build 2026 (the Agentic Loop + Skills-as-folders).
 
-## The 60-second track
+## In brief
 > "The industry spent 2025 building **50+ specialised agents with handoffs** — and hit
 > discovery failures, infinite loops, context pollution and un-maintainable graphs. Build
 > 2026's guidance is the opposite: **build skills, not agents**. One agent, one **agentic
@@ -25,15 +25,15 @@ Microsoft shipped at Build 2026 (the Agentic Loop + Skills-as-folders).
 > subscription. Same `SKILL.md` runs in Copilot CLI, VS Code, Copilot Studio, Claude Code,
 > or your app via the SDK — **portable**."
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **One loop to maintain** vs. a brittle multi-agent handoff graph.
 - **Skills portable across tools/models**; add one in minutes.
 - **BYOM** — production-tested agentic loop (Copilot SDK), *your* model + billing.
 
-## Money line
+## The one-liner
 > "Don't orchestrate fifty agents. Give one good loop the right skills — and let it reason."
 
-## Demo steps (in `../skill-forge`)
+## Running it (in `../skill-forge`)
 1. `uv run skill-forge` → open http://localhost:8000
 2. Ask a portfolio/product question; watch the **skill chips** show which skill the loop chose.
 3. Open `skills/rag-search/SKILL.md` — show the frontmatter (`name` + `description`) + `tool.py`.

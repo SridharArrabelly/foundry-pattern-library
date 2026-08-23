@@ -4,7 +4,7 @@
 
 **Slide title:** *Grounding that's truly yours — and every tool call governed.*
 
-## The 60-second track
+## In brief
 > "An agent is only as good as its context. Microsoft's answer is **Microsoft IQ** — four
 > layers of grounding, not a single feature:
 > - **Web IQ** — AI-first web grounding, **MCP-native**, ~**2.5× faster** than the next best
@@ -32,17 +32,17 @@ Fabric IQ and Work IQ are real product layers and part of the story, but nothing
 them — they're drawn dashed on the slide for exactly that reason. If you're asked, say so
 plainly: wiring Foundry IQ needs an Azure AI Search index with real content behind it.
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Tool calls governed like model calls** — same gateway, same control point, one audit trail.
 - **Key custody in the gateway** — the backend credential never reaches a client or a `.env`.
 - **Retrieval planning** across sources (Foundry IQ) instead of hand-wired RAG.
-- **Org + business context** (Work IQ, Fabric IQ) — a moat no other platform can match.
+- **Org + business context** (Work IQ, Fabric IQ) — grounded in your tenant and your data model.
 
-## Money line
+## The one-liner
 > "Web IQ grounds you in the world. Foundry IQ grounds you in your enterprise. And every one
 > of those tool calls goes through the same gateway as your model calls."
 
-## Demo steps
+## Running it
 1. `uv run python 03-microsoft-iq/microsoft_iq.py` — resolves the **APIM MCP route**, opens an
    MCP session, lists the Web IQ tools, and runs one cited regulatory query.
 2. Point at the header line: the only credential sent is an **APIM subscription key**.

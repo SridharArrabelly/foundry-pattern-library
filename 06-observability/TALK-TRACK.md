@@ -4,7 +4,7 @@
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 
-## The 60-second track
+## In brief
 > "This pattern creates a **real Foundry agent** — `rm-assistant-traced`, it shows up in the
 > **Agents** list, you can chat with it live — and then runs one turn with **OpenTelemetry**
 > switched on. Now look at the same run in **three** places:
@@ -18,7 +18,7 @@
 > latency and the tool name**. That's how you debug a non-deterministic agent and
 > attribute spend.
 >
-> Two things your homegrown factory struggles with. First, it's **agent-aware** — spans
+> Two things that are hard to build yourself. First, it's **agent-aware** — spans
 > understand agents, tools and runs, not just HTTP calls, and Foundry traces the run
 > **server-side** into the Tracing tab for free. Second, it's **OpenTelemetry**, so there's
 > **no lock-in**: the same stream goes to App Insights *and* your Datadog / Grafana /
@@ -39,15 +39,15 @@ the project's connected App Insights — the exact resource that backs the **Tra
 We ALSO wire the client-side Azure Monitor exporter, so our parent span + the local tool
 call are captured too. Result: the run shows in the portal Tracing tab **and** App Insights.
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
 - **Token + cost + latency** attributes per span → real observability & FinOps.
 - **OpenTelemetry** = portable; ship to Azure Monitor *and* your existing backend.
 
-## Money line
+## The one-liner
 > "Same agent you saw in the Agents list — now with a flight recorder. And it's OTel, so it's yours."
 
-## Demo steps
+## Running it
 1. `uv run python 06-observability/enable_tracing.py` → prints the agent name/version + answer
    (C-1290 = **not compliant**, over-weight equities).
 2. Portal: **Foundry → Agents → rm-assistant-traced** — show it exists; optionally chat with it.

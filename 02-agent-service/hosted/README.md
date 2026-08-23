@@ -113,7 +113,7 @@ Each `azd deploy` creates a **new version** (v2, v3…); the latest is active by
 azd down               # remove the hosted agent (and azd-provisioned resources)
 ```
 
-## The two hosting models — say this out loud
+## The two hosting models
 
 | | Prompt-based agent (`../create_prompt_agent.py`) | Hosted agent (this folder) |
 |---|---|---|
