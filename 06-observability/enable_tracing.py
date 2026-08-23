@@ -119,18 +119,44 @@ def instrument_foundry(record_content: bool):
     return instrumentor
 
 
-def ask(openai_client, agent_name, question, tracer):
+def _accumulate_usage(response, totals: dict[str, int], observed: set[str]):
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    for field, attribute in (
+        ("input_tokens", "input"),
+        ("output_tokens", "output"),
+    ):
+        value = getattr(usage, field, None)
+        if isinstance(value, int) and value >= 0:
+            totals[attribute] += value
+            observed.add(attribute)
+
+
+def ask(openai_client, agent_name, agent_version, question, tracer):
     """Ask the Foundry agent with explicit agent/model/tool Responses spans."""
     ref = {"name": agent_name, "type": "agent_reference"}
     with tracer.start_as_current_span("invoke_agent") as agent_span:
         agent_span.set_attribute("gen_ai.agent.name", agent_name)
+        agent_span.set_attribute("gen_ai.agent.version", str(agent_version))
+        totals = {"input": 0, "output": 0}
+        observed = set()
         resp = openai_client.responses.create(
             input=question,
             extra_body={"agent_reference": ref},
         )
+        _accumulate_usage(resp, totals, observed)
         while True:
             calls = [o for o in resp.output if getattr(o, "type", None) == "function_call"]
             if not calls:
+                if "input" in observed:
+                    agent_span.set_attribute(
+                        "gen_ai.usage.input_tokens", totals["input"]
+                    )
+                if "output" in observed:
+                    agent_span.set_attribute(
+                        "gen_ai.usage.output_tokens", totals["output"]
+                    )
                 return resp.output_text
             outputs = []
             for call in calls:
@@ -153,6 +179,7 @@ def ask(openai_client, agent_name, question, tracer):
                 input=outputs,
                 extra_body={"agent_reference": ref},
             )
+            _accumulate_usage(resp, totals, observed)
 
 
 def main():
@@ -184,9 +211,16 @@ def main():
 
         with tracer.start_as_current_span("rm-observability-demo") as span:
             span.set_attribute("gen_ai.agent.name", AGENT_NAME)
+            span.set_attribute("gen_ai.agent.version", str(agent.version))
             span.set_attribute("demo.client_id", "C-1290")
             print(f"> {QUESTION}")
-            answer = ask(openai_client, agent.name, QUESTION, tracer)
+            answer = ask(
+                openai_client,
+                agent.name,
+                agent.version,
+                QUESTION,
+                tracer,
+            )
             print("\nAgent answer:\n", answer)
 
         # 4) Force-flush so spans are exported before the process exits.
@@ -198,7 +232,8 @@ def main():
     print(f"  1. Foundry portal -> your project -> Agents -> {AGENT_NAME} (chat with it live).")
     print("  2. Foundry portal -> your project -> 'Tracing' tab (agent waterfall).")
     print("  3. Application Insights -> Transaction search / Logs (may take ~1-2 min).")
-    print("Each span carries: model, token counts, latency and tool name.")
+    print("The invoke_agent span carries: agent name/version + aggregated input/output tokens.")
+    print("Native Responses spans carry model, per-call token counts and latency.")
     print(
         "Prompt/completion bodies are "
         + (

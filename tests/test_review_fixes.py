@@ -41,6 +41,31 @@ class FakeProjectInstrumentor:
         self.options = kwargs
 
 
+class RecordingSpan:
+    def __init__(self, name):
+        self.name = name
+        self.attributes = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+    def set_attribute(self, name, value):
+        self.attributes[name] = value
+
+
+class RecordingTracer:
+    def __init__(self):
+        self.spans = []
+
+    def start_as_current_span(self, name):
+        span = RecordingSpan(name)
+        self.spans.append(span)
+        return span
+
+
 class ReviewFixTests(unittest.TestCase):
     def test_release_fixtures_cannot_contain_static_responses(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -215,6 +240,71 @@ class ReviewFixTests(unittest.TestCase):
         self.assertEqual(state["content_env"], "true")
         self.assertTrue(options["enable_content_recording"])
         self.assertTrue(options["enable_trace_context_propagation"])
+
+    def test_invoke_agent_aggregates_multi_response_usage_and_version(self):
+        tool_call = SimpleNamespace(
+            type="function_call",
+            name="get_client_holdings",
+            call_id="tool-call-1",
+            arguments=json.dumps({"client_id": "C-1290"}),
+        )
+        responses = FakeResponses(
+            [
+                SimpleNamespace(
+                    id="response-1",
+                    output=[tool_call],
+                    output_text="",
+                    usage=SimpleNamespace(input_tokens=11, output_tokens=3),
+                ),
+                SimpleNamespace(
+                    id="response-2",
+                    output=[],
+                    output_text="Not compliant.",
+                    usage=SimpleNamespace(input_tokens=7, output_tokens=5),
+                ),
+            ]
+        )
+        tracer = RecordingTracer()
+        answer = tracing.ask(
+            SimpleNamespace(responses=responses),
+            "rm-assistant-traced",
+            7,
+            "Is C-1290 compliant?",
+            tracer,
+        )
+        self.assertEqual(answer, "Not compliant.")
+        agent_span = next(span for span in tracer.spans if span.name == "invoke_agent")
+        self.assertEqual(agent_span.attributes["gen_ai.agent.name"], "rm-assistant-traced")
+        self.assertEqual(agent_span.attributes["gen_ai.agent.version"], "7")
+        self.assertEqual(agent_span.attributes["gen_ai.usage.input_tokens"], 18)
+        self.assertEqual(agent_span.attributes["gen_ai.usage.output_tokens"], 8)
+
+    def test_invoke_agent_handles_missing_usage_without_inventing_tokens(self):
+        tracer = RecordingTracer()
+        answer = tracing.ask(
+            SimpleNamespace(
+                responses=FakeResponses(
+                    [
+                        SimpleNamespace(
+                            id="response-1",
+                            output=[],
+                            output_text="Answer without usage.",
+                            usage=None,
+                        )
+                    ]
+                )
+            ),
+            "rm-assistant-traced",
+            "preview",
+            "Question",
+            tracer,
+        )
+        self.assertEqual(answer, "Answer without usage.")
+        agent_span = next(span for span in tracer.spans if span.name == "invoke_agent")
+        self.assertEqual(agent_span.attributes["gen_ai.agent.name"], "rm-assistant-traced")
+        self.assertEqual(agent_span.attributes["gen_ai.agent.version"], "preview")
+        self.assertNotIn("gen_ai.usage.input_tokens", agent_span.attributes)
+        self.assertNotIn("gen_ai.usage.output_tokens", agent_span.attributes)
 
     def test_search_requires_tool_call_output_and_citations(self):
         citation = SimpleNamespace(type="url_citation", title="Policy", url="https://example.test")

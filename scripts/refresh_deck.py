@@ -538,6 +538,14 @@ def update_content(presentation):
         ),
         "OpenTelemetry spans\nmetadata only \u00b7 tokens \u00b7 latency",
     )
+    replace_text(
+        patterns[6],
+        (
+            "Token + cost + latency per span \u2014 observability & FinOps",
+            "Token + latency telemetry \u00b7 rate-card cost by agent/version",
+        ),
+        "Token + latency telemetry \u00b7 rate-card cost by agent/version",
+    )
     set_font_size(
         next(
             shape

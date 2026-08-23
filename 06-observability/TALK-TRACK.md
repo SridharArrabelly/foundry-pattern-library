@@ -45,26 +45,34 @@ server-side spans share one trace ID.
 
 ## What Foundry gives you here
 - **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
-- **Token + cost + latency** attributes per span → real observability & FinOps.
+- **Token + latency telemetry; rate-card-derived cost per agent/version** → real
+  observability & FinOps without pretending cost is a native span attribute.
 - **OpenTelemetry** = portable; ship to Azure Monitor *and* your existing backend.
 
 ## Cost attribution comes free with this
-The same spans carry token counts, so cost per agent is a KQL query away — no separate
-metering pipeline, no spreadsheet. Group by `gen_ai.agent.name` and the agent **version** and
-you can show that a new version is cheaper *and* better before you promote it:
+The explicit `invoke_agent` span aggregates input/output tokens across every Responses call
+in the function-tool loop and carries the agent name + version. Query those attributes, then
+apply your organization's rate card outside the telemetry pipeline:
 
 ```kusto
 dependencies
-| where isnotempty(customDimensions["gen_ai.agent.name"])
+| where name == "invoke_agent"
+| extend agent = tostring(customDimensions["gen_ai.agent.name"]),
+         version = tostring(customDimensions["gen_ai.agent.version"]),
+         input_tokens = coalesce(tolong(customDimensions["gen_ai.usage.input_tokens"]), 0),
+         output_tokens = coalesce(tolong(customDimensions["gen_ai.usage.output_tokens"]), 0)
+| where isnotempty(agent) and isnotempty(version)
+| extend total_tokens = input_tokens + output_tokens
 | summarize calls = count(),
-            tokens = sum(toint(customDimensions["gen_ai.usage.total_tokens"]))
-        by agent = tostring(customDimensions["gen_ai.agent.name"]),
-           version = tostring(customDimensions["gen_ai.agent.version"])
+            input_tokens = sum(input_tokens),
+            output_tokens = sum(output_tokens),
+            total_tokens = sum(total_tokens)
+        by agent, version
 ```
 
-Multiply tokens by your rate card for spend per agent. That last step is your arithmetic, not
-a platform feature — but the attribution underneath it is real telemetry, which is the part
-that's hard to build. Agent 365 adds the org-wide inventory, identity and policy layer on top.
+Apply the relevant input/output rates to those totals for spend per agent/version. That cost
+is your organization's rate-card arithmetic, not an emitted telemetry attribute. The
+attribution underneath it is real telemetry; Agent 365 adds org-wide inventory and policy.
 
 ## The one-liner
 > "Same agent you saw in the Agents list — now with a flight recorder. And it's OTel, so it's yours."
