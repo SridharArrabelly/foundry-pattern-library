@@ -43,7 +43,7 @@ You also need the **Foundry Project Manager** role on the `your-project` project
 **Terminal 1 — start the host:**
 
 ```powershell
-cd 02-agent-service/hosted
+cd 02-foundry-agent-service/hosted
 copy src\rm-assistant\.env.example src\rm-assistant\.env
 azd ai agent run                                   # starts the host on http://localhost:8088
 ```
@@ -81,7 +81,7 @@ provisioning new infra), then deploy. This uses **code deploy** — a ZIP of `sr
 is built remotely, so **no local Docker is needed**.
 
 ```powershell
-cd 02-agent-service/hosted
+cd 02-foundry-agent-service/hosted
 
 # One-time: bind the azd env to the existing project by resource id (code deploy, Python 3.13)
 $proj = "/subscriptions/<sub>/resourceGroups/your-resource-group/providers/Microsoft.CognitiveServices/accounts/your-foundry-resource/projects/your-project"

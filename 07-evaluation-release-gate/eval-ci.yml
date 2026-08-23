@@ -1,0 +1,38 @@
+# Pattern 7 — Evaluation & release gate. Drop into .github/workflows/.
+# Score PRs that change this sample's checked-in candidate instructions/eval
+# fixtures or the shared runtime/dependencies; each run evaluates the configured model.
+name: agent-eval-gate
+
+on:
+  pull_request:
+    paths:
+      - "07-evaluation-release-gate/**"
+      - "common/foundry.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+
+permissions:
+  id-token: write   # OIDC federated login to Azure — no stored secrets
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Run evaluation gate
+        env:
+          # The project endpoint is configuration, not a secret. Authentication is
+          # the federated identity established by azure/login above.
+          PROJECT_ENDPOINT: ${{ vars.PROJECT_ENDPOINT }}
+          MODEL_DEPLOYMENT_NAME: ${{ vars.MODEL_DEPLOYMENT_NAME || 'gpt-5.4-mini' }}
+        run: uv run python 07-evaluation-release-gate/run_eval.py   # non-zero exit fails the check

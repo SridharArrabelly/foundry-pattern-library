@@ -77,7 +77,8 @@ def main():
 
     print(
         "\nSemantic cache (equivalent, not identical, prompts) lives at the gateway —"
-        "\nAPIM azure-openai-semantic-cache-lookup/store (see 01-wedge). Two layers, one bill."
+        "\nAPIM azure-openai-semantic-cache-lookup/store "
+        "(see 01-ai-gateway-model-access). Two layers, one bill."
     )
 
 

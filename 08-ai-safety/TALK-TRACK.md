@@ -1,6 +1,6 @@
-# Pattern 8 — Governance (Prompt Shields + Content Safety)
+# Pattern 8 — AI safety (Prompt Shields + Content Safety)
 
-**Group:** Control plane  ·  **Runs 2nd of 12** in the run order
+**Group:** Platform foundation & governance  ·  **Runs 2nd of 12** in the run order
 
 **Slide title:** *The safety + identity + data-governance plane — in front of every turn.*
 
@@ -30,7 +30,7 @@
 > "Your gateway checks tokens. Foundry checks the *attack* — even the one hidden in a document."
 
 ## Running it
-1. `uv run python 08-governance/prompt_shields_test.py` — **live, keyless**: direct jailbreak
+1. `uv run python 08-ai-safety/prompt_shields_test.py` — **live, keyless**: direct jailbreak
    BLOCKED, XPIA-in-a-document BLOCKED, clean question allowed (no over-blocking).
 2. Portal: deployment **Content filters** + a custom blocklist term blocked.
 3. **Agents → rm-assistant-prompt → Identity** (Entra Agent ID); mention Purview DSPM for AI.

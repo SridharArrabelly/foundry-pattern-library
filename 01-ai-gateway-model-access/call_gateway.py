@@ -1,5 +1,5 @@
 """
-Pattern 1 — The Wedge (AI Hub Gateway / Citadel).
+Pattern 1 — AI gateway & model access (APIM).
 
 Your team built a LiteLLM gateway. Whether it's LiteLLM or Azure API Management's
 AI Gateway, the gateway is the *model-access* layer. Foundry doesn't replace it —
@@ -7,7 +7,7 @@ Foundry becomes just another provider *behind* it, and (more importantly) the
 *factory* above it. This script proves the "drop-in provider" half: one
 OpenAI-shaped call to your Azure AI Gateway, hitting the Foundry-served model.
 
-Run:  uv run python 01-wedge/call_gateway.py
+Run:  uv run python 01-ai-gateway-model-access/call_gateway.py
 """
 import sys, os
 

@@ -1,6 +1,6 @@
 # Pattern 6 — Observability & tracing (OpenTelemetry)
 
-**Group:** Operate & optimise  ·  **Runs 10th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 11th of 12** in the run order
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 
@@ -14,8 +14,9 @@
 >   3. **Application Insights** — Transaction search / Logs (KQL) on the *same* data.
 >
 > The waterfall reads: `rm-observability-demo → invoke_agent → get_client_holdings →
-> chat gpt-5.4-mini`, each span carrying **model, prompt + completion, token counts,
-> latency and the tool name**. That's how you debug a non-deterministic agent and
+> chat gpt-5.4-mini`, each span carrying **model, token counts, latency and the tool
+> name**. Prompt and completion bodies stay out by default. That's how you debug a
+> non-deterministic agent and
 > attribute spend.
 >
 > Two things that are hard to build yourself. First, it's **agent-aware** — spans
@@ -37,30 +38,41 @@ the agent runs on the direct Foundry route — the traces are identical either w
 A Foundry agent has a **portal identity** and Foundry exports its run traces server-side to
 the project's connected App Insights — the exact resource that backs the **Tracing** tab.
 We ALSO wire the client-side Azure Monitor exporter, so our parent span + the local tool
-call are captured too. Result: the run shows in the portal Tracing tab **and** App Insights.
+call are captured too. The generic locked OpenAI instrumentor does not wrap
+`responses.create`; this sample instead uses the SDK-native `AIProjectInstrumentor`, which
+instruments Responses and injects `traceparent`/`tracestate` so client and Foundry
+server-side spans share one trace ID.
 
 ## What Foundry gives you here
 - **Agent-native tracing** (agent/tool/run spans) out of the box, in the portal.
-- **Token + cost + latency** attributes per span → real observability & FinOps.
+- **Token + latency telemetry; rate-card-derived cost per agent/version** → real
+  observability & FinOps without pretending cost is a native span attribute.
 - **OpenTelemetry** = portable; ship to Azure Monitor *and* your existing backend.
 
 ## Cost attribution comes free with this
-The same spans carry token counts, so cost per agent is a KQL query away — no separate
-metering pipeline, no spreadsheet. Group by `gen_ai.agent.name` and the agent **version** and
-you can show that a new version is cheaper *and* better before you promote it:
+The explicit `invoke_agent` span aggregates input/output tokens across every Responses call
+in the function-tool loop and carries the agent name + version. Query those attributes, then
+apply your organization's rate card outside the telemetry pipeline:
 
 ```kusto
 dependencies
-| where isnotempty(customDimensions["gen_ai.agent.name"])
+| where name == "invoke_agent"
+| extend agent = tostring(customDimensions["gen_ai.agent.name"]),
+         version = tostring(customDimensions["gen_ai.agent.version"]),
+         input_tokens = coalesce(tolong(customDimensions["gen_ai.usage.input_tokens"]), 0),
+         output_tokens = coalesce(tolong(customDimensions["gen_ai.usage.output_tokens"]), 0)
+| where isnotempty(agent) and isnotempty(version)
+| extend total_tokens = input_tokens + output_tokens
 | summarize calls = count(),
-            tokens = sum(toint(customDimensions["gen_ai.usage.total_tokens"]))
-        by agent = tostring(customDimensions["gen_ai.agent.name"]),
-           version = tostring(customDimensions["gen_ai.agent.version"])
+            input_tokens = sum(input_tokens),
+            output_tokens = sum(output_tokens),
+            total_tokens = sum(total_tokens)
+        by agent, version
 ```
 
-Multiply tokens by your rate card for spend per agent. That last step is your arithmetic, not
-a platform feature — but the attribution underneath it is real telemetry, which is the part
-that's hard to build. Agent 365 adds the org-wide inventory, identity and policy layer on top.
+Apply the relevant input/output rates to those totals for spend per agent/version. That cost
+is your organization's rate-card arithmetic, not an emitted telemetry attribute. The
+attribution underneath it is real telemetry; Agent 365 adds org-wide inventory and policy.
 
 ## The one-liner
 > "Same agent you saw in the Agents list — now with a flight recorder. And it's OTel, so it's yours."
@@ -71,14 +83,15 @@ that's hard to build. Agent 365 adds the org-wide inventory, identity and policy
 2. Portal: **Foundry → Agents → rm-assistant-traced** — show it exists; optionally chat with it.
 3. Portal: **Foundry → Tracing** → open the run's waterfall (server-side spans).
 4. **App Insights → Transaction search / Logs** → same trace, ~1–2 min ingestion lag.
-5. Point at a model span: tokens, latency, prompt/completion. Mention the one-line OTLP dual-export.
+5. Point at a model span: agent/model/tool metadata, tokens and latency. Mention the one-line
+   OTLP dual-export.
 6. With `AGENT_MODEL_CONNECTION` set, show the same run in the **gateway metrics** (BYOM).
 
 ## Notes
-- Two env flags must be ON **before** instrumentation (the script sets them):
-  `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` (prompt/completion text on spans) and
-  `AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING=true` (emit the GenAI semantic spans). Without the
-  second, App Insights logs a warning and you get only generic spans.
+- Metadata-only is the enterprise-safe default. `TRACE_CONTENT_RECORDING=true` maps to
+  OpenTelemetry's documented `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`.
+  Only then do the explicit Responses spans attach prompt/completion bodies; doing so makes
+  sensitive content subject to the telemetry backend's access controls and retention policy.
 - Benign on a laptop: red `169.254.169.254` / IMDS / WinError 10051 tracebacks are the Azure
   Monitor VM resource detector + managed-identity probe looking for cloud metadata. Harmless,
   and absent on Azure compute.

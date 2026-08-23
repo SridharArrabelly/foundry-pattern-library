@@ -1,5 +1,6 @@
 """
-Pattern 2 — Foundry agents, model A: **prompt-based agent** (declarative).
+Pattern 2 — Foundry Agent Service (prompt and hosted agents), model A:
+**prompt-based agent** (declarative).
 
 Same Private Banking scenario as the hosted agent in ./hosted/, but the OTHER hosting
 model: you hand Foundry a model + instructions + tools and it runs a managed agent for
@@ -28,7 +29,7 @@ Gateway note: set AGENT_MODEL_CONNECTION in .env to route this agent's inference
 through APIM (BYOM). Without it the agent still works, but Foundry calls the model
 directly and the gateway sees nothing — see common/foundry.py and docs/coexistence.md.
 
-Run:  uv run python 02-agent-service/create_prompt_agent.py
+Run:  uv run python 02-foundry-agent-service/create_prompt_agent.py
 """
 import json
 import os

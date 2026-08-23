@@ -1,6 +1,6 @@
 # Pattern 11 — Cost & latency (prompt cache + Model Router)
 
-**Group:** Operate & optimise  ·  **Runs 12th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 12th of 12** in the run order
 
 **Slide title:** *Two cache layers and a router — cheaper without touching your app.*
 
@@ -28,7 +28,7 @@
 1. `uv run python 11-caching-cost/prompt_cache_demo.py`.
 2. Call 1 `cached=0` (cold) → Call 2 `cached=1,280` and much lower latency = **HIT**.
 3. Model Router routes the trivial prompt to a cheaper model (often cross-provider).
-4. Point at `01-wedge` APIM policy for the **semantic** cache layer (paraphrases).
+4. Point at `01-ai-gateway-model-access` APIM policy for the **semantic** cache layer (paraphrases).
 
 ## Grounding
 From the official *Prompt caching* docs: needs ≥ 1,024 tokens with the first 1,024
@@ -52,4 +52,3 @@ Model Router (model-router) — a trivial prompt should route to the cheapest ca
 ```
 > The two numbers that sell it: **cached 0 → 1,280** and latency **~6.9s → ~1.5s** on
 > the identical prefix. The router leg often lands on a small cross-provider model.
-

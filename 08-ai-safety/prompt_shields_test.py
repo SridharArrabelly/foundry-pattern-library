@@ -1,5 +1,5 @@
 """
-Pattern 8 — Governance: Prompt Shields blocks prompt injection (LIVE, keyless).
+Pattern 8 — AI safety (Prompt Shields + Content Safety), live and keyless.
 
 Sends three prompts to Content Safety **Prompt Shields** and prints the verdict — the
 attack caught BEFORE it reaches the model/agent:
@@ -16,7 +16,7 @@ with a DefaultAzureCredential bearer token.
 Optional override: set CONTENT_SAFETY_ENDPOINT (+ CONTENT_SAFETY_KEY for key auth) in .env
 to point at a standalone Content Safety resource instead.
 
-Run:  uv run python 08-governance/prompt_shields_test.py
+Run:  uv run python 08-ai-safety/prompt_shields_test.py
 """
 import os
 import sys

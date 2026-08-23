@@ -1,6 +1,6 @@
-# Pattern 1 — Wedge → AI Hub Gateway / Citadel
+# Pattern 1 — AI gateway & model access (APIM)
 
-**Group:** Control plane  ·  **Runs 1st of 12** in the run order
+**Group:** Platform foundation & governance  ·  **Runs 1st of 12** in the run order
 
 **Slide title:** *Keep your gateway. Foundry plugs in behind it — and sits above it.*
 
@@ -19,7 +19,7 @@
 
 ## What Foundry gives you here
 - Their gateway stays; nothing is ripped out. Zero-risk entry point.
-- Reframes the gateway as **commodity** and the factory (identity, eval, tracing,
+- Keeps the gateway focused on **model access** while the factory (identity, eval, tracing,
   governance) as the **differentiation** — which their platform lacks.
 
 ## The gateway thread (sets up Patterns 2 and 6)
