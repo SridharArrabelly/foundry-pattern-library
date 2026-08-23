@@ -314,20 +314,21 @@ Framework) and the skill chips.
 
 ## Suggested run-of-show
 
-Sixty minutes, walked group by group — the same order as `foundry-patterns.pptx`.
+Walked group by group — the same order as `foundry-patterns.pptx`. Pick the depth to suit
+the room; the order is what matters.
 
-| Group | # | Pattern | Minutes |
-|-------|---|---------|---------|
-| Control plane | 1 | Wedge → AI Hub Gateway / Citadel | 0–4 |
-| Control plane | 8 | Governance / Prompt Shields / Content Safety | 4–9 |
-| Agent factory | 2 | Agent Service | 9–14 |
-| Agent factory | 3 | Microsoft IQ — the intelligence layer | 14–19 |
-| Agent factory | 13 | Centralized Toolboxes | 19–24 |
-| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) | 24–28 |
-| Agent factory | 10 | Memory (Short-term & Long-term) | 28–32 |
-| Orchestration & interop | 5 | Multi-agent (Agent Framework) | 32–36 |
-| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) | 36–41 |
-| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) | 41–47 |
-| Operate & optimise | 7 | Evaluation → optimization (CI gate) | 47–52 |
-| Operate & optimise | 11 | Caching & Cost | 52–56 |
-| Operate & optimise | 12 | Agent 365 & ROI | 56–60 |
+| Group | # | Pattern |
+|-------|---|---------|
+| Control plane | 1 | Wedge → AI Hub Gateway / Citadel |
+| Control plane | 8 | Governance / Prompt Shields / Content Safety |
+| Agent factory | 2 | Agent Service |
+| Agent factory | 3 | Microsoft IQ — the intelligence layer |
+| Agent factory | 13 | Centralized Toolboxes |
+| Agent factory | 4 | Agentic Loop (Build Skills, Not Agents) |
+| Agent factory | 10 | Memory (Short-term & Long-term) |
+| Orchestration & interop | 5 | Multi-agent (Agent Framework) |
+| Orchestration & interop | 9 | AWS cross-cloud interop (MCP / A2A) |
+| Operate & optimise | 6 | Observability & tracing (OpenTelemetry) |
+| Operate & optimise | 7 | Evaluation → optimization (CI gate) |
+| Operate & optimise | 11 | Caching & Cost |
+| Operate & optimise | 12 | Agent 365 & ROI |

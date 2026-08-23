@@ -1,6 +1,6 @@
 # Pattern 13 — Centralized Toolboxes
 
-**Group:** Agent factory  ·  **Runs 5th of 13** in the hour (minutes 19–24)
+**Group:** Agent factory  ·  **Runs 5th of 13** in the run order
 
 **Slide title:** *Curate tools once. Every agent gets them — governed, versioned, discoverable.*
 

@@ -1,6 +1,6 @@
 # Pattern 1 — The Wedge → AI Hub Gateway / Citadel
 
-**Group:** Control plane  ·  **Runs 1st of 13** in the hour (minutes 0–4)
+**Group:** Control plane  ·  **Runs 1st of 13** in the run order
 
 **Slide title:** *Keep your gateway. Foundry plugs in behind it — and sits above it.*
 
