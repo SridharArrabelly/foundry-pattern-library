@@ -60,8 +60,8 @@ remain narrated, and are drawn dotted on the slide.
    | Past the rate limit | **429** |
 
 4. **Azure AI Search:** creates a versioned Foundry prompt agent with `AzureAISearchTool`,
-   requires tool use, and fails unless the response contains a completed Search invocation,
-   Search output and citation annotations.
+   requires tool use, and fails unless every completed Search invocation has a completed
+   output with the same `call_id` plus citation annotations.
 5. Note the **same governed MCP endpoint** is callable from Foundry, Copilot, or a Bedrock agent.
 
 ## Why we hand-built the MCP API
@@ -74,8 +74,10 @@ Setup (backend + API + policy) is in [`docs/coexistence.md`](../docs/coexistence
 that forces buffering and breaks the stream. Control is inbound-side (auth, quota,
 allow-listing), not response inspection.
 
-The client also checks `CallToolResult.isError` and requires at least one source URL in the
-Web IQ payload before it prints the grounded/cited success line.
+The client also checks `CallToolResult.isError` and requires the documented `webResults`
+shape with at least one source record containing a title, URL and substantive content
+or snippet before it prints the grounded/cited success line. Help/error URLs in arbitrary
+text do not count.
 
 ## Configuration prerequisites
 Set `AI_SEARCH_CONNECTION_NAME` to a Foundry project connection of type Azure AI Search and

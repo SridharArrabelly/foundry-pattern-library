@@ -223,8 +223,16 @@ class ReviewFixTests(unittest.TestCase):
             status="completed",
             output_text="Cited answer",
             output=[
-                SimpleNamespace(type="azure_ai_search_call", status="completed"),
-                SimpleNamespace(type="azure_ai_search_call_output", status="completed"),
+                SimpleNamespace(
+                    type="azure_ai_search_call",
+                    status="completed",
+                    call_id="search-call-1",
+                ),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status="completed",
+                    call_id="search-call-1",
+                ),
                 SimpleNamespace(type="message", content=[content]),
             ],
         )
@@ -241,16 +249,95 @@ class ReviewFixTests(unittest.TestCase):
                     status="completed",
                     output_text="answer",
                     output=[
-                        SimpleNamespace(type="azure_ai_search_call", status="completed"),
-                        SimpleNamespace(type="azure_ai_search_call_output", status="completed"),
+                        SimpleNamespace(
+                            type="azure_ai_search_call",
+                            status="completed",
+                            call_id="search-call-1",
+                        ),
+                        SimpleNamespace(
+                            type="azure_ai_search_call_output",
+                            status="completed",
+                            call_id="search-call-1",
+                        ),
                     ],
                 )
             )
 
+    def test_search_rejects_statusless_or_mismatched_call_items(self):
+        citation = SimpleNamespace(type="url_citation", title="Policy", url="https://example.test")
+        message = SimpleNamespace(
+            type="message",
+            content=[SimpleNamespace(annotations=[citation])],
+        )
+        cases = {
+            "statusless-call": [
+                SimpleNamespace(type="azure_ai_search_call", status=None, call_id="call-1"),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status="completed",
+                    call_id="call-1",
+                ),
+                message,
+            ],
+            "statusless-output": [
+                SimpleNamespace(
+                    type="azure_ai_search_call",
+                    status="completed",
+                    call_id="call-1",
+                ),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status=None,
+                    call_id="call-1",
+                ),
+                message,
+            ],
+            "mismatched": [
+                SimpleNamespace(
+                    type="azure_ai_search_call",
+                    status="completed",
+                    call_id="call-1",
+                ),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status="completed",
+                    call_id="call-2",
+                ),
+                message,
+            ],
+            "unrelated-output": [
+                SimpleNamespace(
+                    type="azure_ai_search_call",
+                    status="completed",
+                    call_id="call-1",
+                ),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status="completed",
+                    call_id="call-1",
+                ),
+                SimpleNamespace(
+                    type="azure_ai_search_call_output",
+                    status="completed",
+                    call_id="call-2",
+                ),
+                message,
+            ],
+        }
+        for name, output in cases.items():
+            with self.subTest(name=name), self.assertRaises(RuntimeError):
+                microsoft_iq.validate_search_response(
+                    SimpleNamespace(
+                        status="completed",
+                        output_text="Cited answer",
+                        output=output,
+                    )
+                )
+
     def test_web_iq_fails_on_tool_errors_or_missing_sources(self):
         with self.assertRaisesRegex(RuntimeError, "isError=true"):
             microsoft_iq.validate_web_result(SimpleNamespace(isError=True, content=[]))
-        with self.assertRaisesRegex(RuntimeError, "no source URLs"):
+        with self.assertRaisesRegex(RuntimeError, "no valid webResults"):
             microsoft_iq.validate_web_result(
                 SimpleNamespace(
                     isError=False,
@@ -269,6 +356,7 @@ class ReviewFixTests(unittest.TestCase):
                                     {
                                         "title": "Source",
                                         "url": "https://example.test/source",
+                                        "content": "Substantive grounded result content.",
                                     }
                                 ]
                             }
@@ -285,12 +373,83 @@ class ReviewFixTests(unittest.TestCase):
                 isError=False,
                 content=[],
                 structuredContent={
-                    "webResults": [{"url": "https://example.test/structured"}]
+                    "webResults": [
+                        {
+                            "title": "Structured source",
+                            "url": "https://example.test/structured",
+                            "content": "Structured grounded result content.",
+                        }
+                    ]
                 },
             )
         )
         self.assertEqual(len(structured_texts), 1)
         self.assertEqual(structured_urls, ["https://example.test/structured"])
+
+        snippet_texts, snippet_urls = microsoft_iq.validate_web_result(
+            SimpleNamespace(
+                isError=False,
+                content=[],
+                structuredContent={
+                    "webResults": [
+                        {
+                            "title": "Snippet source",
+                            "url": "https://example.test/snippet",
+                            "snippet": "Documented snippet result content.",
+                        }
+                    ]
+                },
+            )
+        )
+        self.assertEqual(len(snippet_texts), 1)
+        self.assertEqual(snippet_urls, ["https://example.test/snippet"])
+
+    def test_web_iq_rejects_help_or_error_urls_without_result_sources(self):
+        cases = [
+            SimpleNamespace(
+                isError=False,
+                content=[
+                    SimpleNamespace(
+                        text="Request throttled; docs at https://example.test/help"
+                    )
+                ],
+            ),
+            SimpleNamespace(
+                isError=False,
+                content=[
+                    SimpleNamespace(
+                        text=json.dumps(
+                            {
+                                "message": "Request throttled",
+                                "help": "https://example.test/help",
+                            }
+                        )
+                    )
+                ],
+            ),
+            SimpleNamespace(
+                isError=False,
+                content=[
+                    SimpleNamespace(
+                        text=json.dumps(
+                            {
+                                "webResults": [
+                                    {
+                                        "title": "Help",
+                                        "url": "https://example.test/help",
+                                    }
+                                ]
+                            }
+                        )
+                    )
+                ],
+            ),
+        ]
+        for result in cases:
+            with self.subTest(result=result), self.assertRaisesRegex(
+                RuntimeError, "no valid webResults"
+            ):
+                microsoft_iq.validate_web_result(result)
 
 
 if __name__ == "__main__":

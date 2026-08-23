@@ -29,7 +29,6 @@ import argparse
 import asyncio
 import json
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -114,21 +113,33 @@ async def run_web_iq():
     print("keyless-first posture.")
 
 
-def _source_urls(value) -> set[str]:
-    urls = set()
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if (
-                key.lower() in {"url", "sourceurl", "source_url"}
-                and isinstance(item, str)
-                and item.startswith(("https://", "http://"))
-            ):
-                urls.add(item)
-            urls.update(_source_urls(item))
-    elif isinstance(value, list):
-        for item in value:
-            urls.update(_source_urls(item))
-    return urls
+def _web_sources(payload) -> list[dict]:
+    """Return genuine sources from the documented Web IQ `webResults` shape."""
+    if not isinstance(payload, dict):
+        return []
+    results = payload.get("webResults")
+    if not isinstance(results, list):
+        return []
+
+    sources = []
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        title = result.get("title")
+        url = result.get("url")
+        passage = result.get("content") or result.get("snippet")
+        if (
+            isinstance(title, str)
+            and title.strip()
+            and isinstance(url, str)
+            and url.startswith(("https://", "http://"))
+            and isinstance(passage, str)
+            and passage.strip()
+        ):
+            sources.append(
+                {"title": title.strip(), "url": url, "passage": passage.strip()}
+            )
+    return sources
 
 
 def validate_web_result(result) -> tuple[list[str], list[str]]:
@@ -143,19 +154,26 @@ def validate_web_result(result) -> tuple[list[str], list[str]]:
         if (text := getattr(block, "text", None))
     ]
 
-    urls = _source_urls(structured) if structured is not None else set()
+    payloads = [structured] if structured is not None else []
     for text in texts:
         try:
-            urls.update(_source_urls(json.loads(text)))
+            payloads.append(json.loads(text))
         except json.JSONDecodeError:
-            urls.update(re.findall(r"https?://[^\s\"'<>]+", text))
-    if not urls:
-        raise RuntimeError("Web IQ MCP output contained no source URLs/citations")
+            continue
+
+    sources = []
+    for payload in payloads:
+        sources.extend(_web_sources(payload))
+    if not sources:
+        raise RuntimeError(
+            "Web IQ MCP output contained no valid webResults source records "
+            "(title + URL + content/snippet)"
+        )
     if not texts and structured is not None:
         texts = [json.dumps(structured, ensure_ascii=False)]
     if not texts:
         raise RuntimeError("Web IQ MCP tool returned no printable grounded content")
-    return texts, sorted(urls)
+    return texts, sorted({source["url"] for source in sources})
 
 
 def annotation_dict(annotation) -> dict:
@@ -199,7 +217,7 @@ def print_search_citations(citations: list[dict]):
 
 
 def validate_search_response(response) -> list[dict]:
-    """Require a completed Search call, its output, and citation-bearing answer text."""
+    """Require completed, one-to-one Search calls/outputs plus cited answer text."""
     if getattr(response, "status", None) != "completed":
         raise RuntimeError(
             f"Azure AI Search response did not complete: {getattr(response, 'status', None)!r}"
@@ -213,10 +231,32 @@ def validate_search_response(response) -> list[dict]:
         raise RuntimeError("The agent response contains no Azure AI Search tool invocation")
     if not call_outputs:
         raise RuntimeError("The agent response contains no Azure AI Search tool output")
-    for item in calls + call_outputs:
-        status = getattr(item, "status", None)
-        if status not in (None, "completed"):
-            raise RuntimeError(f"Azure AI Search tool item did not complete: {status!r}")
+
+    def completed_by_call_id(items, label):
+        by_id = {}
+        for item in items:
+            call_id = getattr(item, "call_id", None)
+            if not isinstance(call_id, str) or not call_id.strip():
+                raise RuntimeError(f"Azure AI Search {label} has no call_id")
+            if getattr(item, "status", None) != "completed":
+                raise RuntimeError(
+                    f"Azure AI Search {label} {call_id!r} did not complete: "
+                    f"{getattr(item, 'status', None)!r}"
+                )
+            if call_id in by_id:
+                raise RuntimeError(f"duplicate Azure AI Search {label} call_id: {call_id}")
+            by_id[call_id] = item
+        return by_id
+
+    calls_by_id = completed_by_call_id(calls, "call")
+    outputs_by_id = completed_by_call_id(call_outputs, "call output")
+    if calls_by_id.keys() != outputs_by_id.keys():
+        missing = sorted(calls_by_id.keys() - outputs_by_id.keys())
+        unrelated = sorted(outputs_by_id.keys() - calls_by_id.keys())
+        raise RuntimeError(
+            "Azure AI Search call/output call_id mismatch: "
+            f"missing outputs={missing}, unrelated outputs={unrelated}"
+        )
 
     citations = collect_search_citations(response)
     if not citations:
