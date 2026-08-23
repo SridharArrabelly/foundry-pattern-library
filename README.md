@@ -103,7 +103,7 @@ walk the groups in order; the numbers are just stable folder IDs.
 |---|--------|---------|----------------|-----------|
 | 2 | `02-agent-service/` | Agent Service (prompt and hosted agent) | Two hosting models — prompt-based (managed vector store + function tool) and a real BYO-code hosted agent — both with an Entra Agent ID | ✅ |
 | 3 | `03-microsoft-iq/` | Microsoft IQ — the intelligence layer | Web IQ published as **our own MCP API on APIM** — the gateway authenticates the caller, holds the Web IQ key and meters every tool call. Foundry IQ, Fabric IQ and Work IQ complete the family (narrated, not wired) | ✅ |
-| 13 | `13-toolbox/` | Centralized Toolboxes (one governed MCP endpoint) | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
+| 13 | `12-toolbox/` | Centralized Toolboxes (one governed MCP endpoint) | Curate tools once behind **one MCP endpoint**; promote a new version and every agent follows with no redeploy. **Tool search** collapses N tool definitions to 2 meta-tools | ✅ |
 | 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 10 | `10-memory/` | Memory (short-term + long-term) | Same session recall (Conversations) **and** cross-session recall from a per-user Memory Store (keyless, preview) | ✅ |
 
@@ -199,7 +199,7 @@ flowchart LR
   GW -.-> WK["Work IQ<br/>M365 org context"]
 ```
 
-### 13 · Centralized Toolboxes (one governed MCP endpoint)
+### 12 · Centralized Toolboxes (one governed MCP endpoint)
 Curate tools once; every agent consumes them from one MCP endpoint. Versions are promoted
 centrally, so the tool plane changes without redeploying an agent. **Tool search** hides N
 tool definitions behind two meta-tools, so a toolbox scales without flooding the context
@@ -327,7 +327,7 @@ the room; the order is what matters.
 | Control plane | 8 | Governance (Prompt Shields + Content Safety) |
 | Agent factory | 2 | Agent Service (prompt and hosted agent) |
 | Agent factory | 3 | Microsoft IQ — the intelligence layer |
-| Agent factory | 13 | Centralized Toolboxes (one governed MCP endpoint) |
+| Agent factory | 12 | Centralized Toolboxes (one governed MCP endpoint) |
 | Agent factory | 4 | Agentic Loop (build skills, not agents) |
 | Agent factory | 10 | Memory (short-term + long-term) |
 | Orchestration & interop | 5 | Multi-agent orchestration (Agent Framework) |
