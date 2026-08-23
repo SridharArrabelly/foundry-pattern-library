@@ -4,7 +4,7 @@
 
 **Slide title:** *Two cache layers and a router — cheaper without touching your app.*
 
-## The 60-second track
+## In brief
 > "Cost isn't a slide, it's a primitive. **Prompt caching** is on by default: send
 > the same long, stable prefix — a policy, a system prompt, tool defs — and the
 > second call reuses the cached input. [run it] Cold call: `cached=0`. Same prefix:
@@ -15,16 +15,16 @@
 > *equivalent* (not just identical) prompts. Two cache layers and a router, one
 > bill — and your app code didn't change."
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Prompt caching** — automatic; `prompt_tokens_details.cached_tokens` proves it.
 - **Model Router** — cost-aware model choice as a deployment, not hand-rolled logic.
 - **Semantic cache at the gateway** — dedupes paraphrases before they hit a model.
 
-## Money line
+## The one-liner
 > "The second identical prefix is nearly free, and the router won't pay for a big
 > model when a small one passes. FinOps you get by default, not by building it."
 
-## Demo steps
+## Running it
 1. `uv run python 11-caching-cost/prompt_cache_demo.py`.
 2. Call 1 `cached=0` (cold) → Call 2 `cached=1,280` and much lower latency = **HIT**.
 3. Model Router routes the trivial prompt to a cheaper model (often cross-provider).

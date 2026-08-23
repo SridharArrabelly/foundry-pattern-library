@@ -4,7 +4,7 @@
 
 **Slide title:** *Curate tools once. Every agent gets them — governed, versioned, discoverable.*
 
-## The 60-second track
+## In brief
 > "Every pattern so far wires tools to *one* agent. That works right up until you have
 > forty. Then five teams build the same connector, every agent carries its own
 > credentials, and nobody can answer the auditor's question: *what tools exist, and who
@@ -39,17 +39,17 @@ Say this explicitly or people will hear an echo of Pattern 3:
 - **Pattern 4** is the loop that *uses* skills. Foundry **Skills** (preview) is where
   skills live server-side — versioned, immutable, attached to a toolbox.
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **One endpoint, not N integrations** — add or swap a tool without touching agent code.
 - **Central credential custody** — the toolbox injects credentials and refreshes tokens;
   agents hold none.
 - **Versioned tool plane** — promote or roll back centrally; every consumer follows.
 - **Tool search** — a hundred tools without a hundred tool definitions in every request.
 
-## Money line
+## The one-liner
 > "You don't wire tools to agents. You run a tool plane — and the agents subscribe."
 
-## Demo steps
+## Running it
 1. `uv run python 13-toolbox/toolbox_demo.py`
 2. Two versions are created: one plain, one with tool search.
 3. Point at **`v_n` exposes 4 / `v_n+1` exposes 2** — that's the context-cost story.

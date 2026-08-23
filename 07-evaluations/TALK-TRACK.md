@@ -4,7 +4,7 @@
 
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 
-## The 60-second track
+## In brief
 > "A gateway can't tell you if your agent is *right*. Foundry's **Evaluation SDK** scores
 > agents on **groundedness, relevance, coherence** — and agent-grade metrics like
 > **intent resolution** and **tool-call accuracy**. Here's a golden set for our RM
@@ -16,17 +16,17 @@
 > Build 2026's framing: **evaluation is the starting point, not the finish line**. From
 > these signals you **hill-climb** across quality, cost and latency — and Foundry now ships
 > **Agent Optimizer** and **Rubric Evaluators** that auto-generate criteria and improve
-> agents continuously in production. Your homegrown factory has no eval harness and no gate."
+> agents continuously in production. Without an eval harness and a gate, none of that is possible."
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Agent-grade evaluators** (groundedness, tool-call accuracy, intent) — offline *and* online.
 - **CI gate** on every PR (`eval-ci.yml`) — quality regressions can't merge.
 - **Continuous optimization** (Agent Optimizer, Rubric Evaluators) — eval → hill-climb.
 
-## Money line
+## The one-liner
 > "If you can't score it, you can't ship it safely — and you certainly can't optimize it."
 
-## Demo steps
+## Running it
 1. `uv run python 07-evaluations/run_eval.py` → judges run in **Foundry cloud**; terminal
    prints the scorecard: groundedness **4 passed / 1 failed** (the planted wrong row) →
    **GATE FAILED** (exit 1).

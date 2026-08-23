@@ -4,8 +4,8 @@
 
 **Slide title:** *Every agent is an identity you can govern and a cost you can justify.*
 
-## The 60-second track
-> "This is the leadership money slide. Two questions a homegrown factory can't
+## In brief
+> "This is the leadership slide. Two questions that are hard to answer without
 > answer: *what agents do we have* and *are they worth it?* **Agent 365** answers
 > the first — org-wide inventory, an **Entra Agent ID** per agent, and policy across
 > all of them, in the portal. The second is FinOps: [run it] we run a batch of real
@@ -15,16 +15,16 @@
 > you already emit (Pattern 6) — grouped by agent and **version**, so you can prove a
 > new version is cheaper *and* better before you ship it."
 
-## What it beats in a homegrown factory
+## What Foundry gives you here
 - **Inventory + identity** — Agent 365 + Entra Agent ID; no spreadsheet of agents.
 - **Cost tied to outcomes** — per agent, per version; a CFO-legible number.
 - **From telemetry you already have** — same OTel traces as Pattern 6, no new pipe.
 
-## Money line
+## The one-liner
 > "You can inventory every agent as an identity and tie its cost to an outcome —
 > governance and FinOps in one plane. Your factory can't show a CFO either."
 
-## Demo steps
+## Running it
 1. `uv run python 12-agent365-roi/agent_roi_report.py`.
 2. 5 RM tasks run through the gateway → per-task tokens + a completion check.
 3. Read the table: runs / done / tokens / cost$ / value$ / ROI, then the **monthly
@@ -69,6 +69,6 @@ rm-assistant             5     5      511    0.0003    60.00  195,694x
 
 Projected at 5,000 tasks/month:  spend $0.30  ->  value $60,000  (net $60,000)
 ```
-> The money line: **$0.30 spend → $60,000 value** at 5,000 tasks/month. Token counts
+> The headline: **$0.30 spend → $60,000 value** at 5,000 tasks/month. Token counts
 > vary run-to-run; the ratio is the point. (`ok`/`x` is the per-task outcome check.)
 

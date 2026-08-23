@@ -8,8 +8,8 @@
 > mock server proves the wire; the topology slide shows the real thing. **AWS Lambda + Bedrock
 > are the concrete example here — swap in whatever cloud the customer runs.**
 
-## The 60-second track
-> "You're an AWS shop, and nothing here asked you to leave. Watch the coexistence pattern:
+## In brief
+> "Nothing here asks you to leave the cloud you already run. This is the coexistence pattern:
 > a **Foundry agent** needs a quote from your **AWS-hosted core-banking / pricing engine**.
 > It calls it over **MCP** — [run `call_via_mcp.py`, which spawns the mock 'AWS side'] — and
 > gets the quote back mid-run. The **wire protocol is identical** whether that tool is local,
@@ -29,10 +29,10 @@
         └── governance overlay: Entra Agent ID + Purview DSPM for AI (both clouds) ──┘
 ```
 
-## Money line
+## The one-liner
 > "Bedrock runs *an agent*. Foundry runs the *agent factory*. MCP and A2A let each cloud do what it's best at."
 
-## Demo steps
+## Running it
 1. `uv run python 09-aws-interop/call_via_mcp.py` — Foundry-side client → mock AWS tool over MCP.
 2. Show `mcp_aws_lambda_server.py` — the *real* AWS version (boto3 Lambda invoke); "swap this in, agent unchanged."
 3. Land the coexistence + migration path (see `../docs/coexistence.md`).
