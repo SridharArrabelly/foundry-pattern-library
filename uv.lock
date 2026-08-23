@@ -1139,7 +1139,7 @@ requires-dist = [
     { name = "agent-framework", specifier = ">=1.9.0" },
     { name = "azure-ai-agents", specifier = ">=1.1.0" },
     { name = "azure-ai-evaluation", specifier = ">=1.0.0" },
-    { name = "azure-ai-projects", specifier = ">=2.1.0" },
+    { name = "azure-ai-projects", specifier = ">=2.3.0" },
     { name = "azure-identity", specifier = ">=1.19.0" },
     { name = "azure-monitor-opentelemetry", specifier = ">=1.6.0" },
     { name = "mcp", specifier = ">=1.2.0" },

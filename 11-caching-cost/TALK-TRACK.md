@@ -1,6 +1,6 @@
 # Pattern 11 — Caching & Cost
 
-**Group:** Operate & optimise  ·  **Runs 11th of 12** in the hour (minutes 53–57)
+**Group:** Operate & optimise  ·  **Runs 12th of 13** in the hour (minutes 52–56)
 
 **Slide title:** *Two cache layers and a router — cheaper without touching your app.*
 

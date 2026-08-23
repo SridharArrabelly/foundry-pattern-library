@@ -1,6 +1,6 @@
 # Pattern 12 — Agent 365 & ROI
 
-**Group:** Operate & optimise  ·  **Runs 12th of 12** in the hour (minutes 57–60)
+**Group:** Operate & optimise  ·  **Runs 13th of 13** in the hour (minutes 56–60)
 
 **Slide title:** *Every agent is an identity you can govern and a cost you can justify.*
 
