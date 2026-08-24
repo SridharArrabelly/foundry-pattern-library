@@ -1219,7 +1219,6 @@ def resume_evaluation(
     record: dict[str, Any] = {
         "record_version": 1,
         "resume_started_at": now_iso(),
-        "job_id": submission.get("job_id"),
         "submission_record_sha256": file_hash(submission_record_path),
         "base_model": config.base_model,
         "base_model_version": config.base_model_version,
@@ -1244,6 +1243,10 @@ def resume_evaluation(
                 baseline,
                 job,
             )
+            # Only verified provenance may authorize cleanup or deployment ownership.
+            record["job_id"] = submission["job_id"]
+            record["training_file_id"] = submission["training_file_id"]
+            record["validation_file_id"] = submission["validation_file_id"]
             status = str(getattr(job, "status", "")).lower()
             fine_tuned_model = getattr(job, "fine_tuned_model", None)
             if status != "succeeded" or not fine_tuned_model:

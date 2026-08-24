@@ -41,6 +41,14 @@ class FakeResponses:
         )
 
 
+class ContextStub(SimpleNamespace):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+
 class ModelAdaptationTests(unittest.TestCase):
     def test_checked_in_datasets_are_valid_separate_and_pii_free(self):
         report = adapt.validate_datasets()
@@ -312,6 +320,143 @@ class ModelAdaptationTests(unittest.TestCase):
                 changed_protocol,
                 baseline,
                 job,
+            )
+
+    def test_resume_invalid_provenance_owns_nothing_but_valid_resume_cleans_files(self):
+        report = adapt.validate_datasets()
+        config = adapt.Config(
+            project_endpoint="https://example.services.ai.azure.com/api/projects/default",
+            resource_id=(
+                "/subscriptions/sub/resourceGroups/rg/providers/"
+                "Microsoft.CognitiveServices/accounts/account"
+            ),
+            region="swedencentral",
+            base_model="gpt-4.1-mini",
+            base_model_version="2025-04-14",
+            base_deployment="gpt-4.1-mini",
+            tuned_deployment="temporary",
+            training_type="GlobalStandard",
+            deployment_sku="DeveloperTier",
+            n_epochs=3,
+            batch_size=1,
+            learning_rate_multiplier=0.1,
+            seed=42,
+            training_price_per_million_usd=5.0,
+            arm_account_api_version="2026-07-01",
+            arm_deployment_api_version="2026-07-01",
+        )
+        baseline = {
+            "evaluation_id": "eval-base",
+            "label": "base",
+            "deployment": config.base_deployment,
+            "test_sha256": report["hashes"]["test_sha256"],
+        }
+        hyperparameters = {
+            "n_epochs": 3,
+            "batch_size": 1,
+            "learning_rate_multiplier": 0.1,
+        }
+        submission = {
+            "job_id": "job-1",
+            "base_model": config.base_model,
+            "base_model_version": config.base_model_version,
+            "base_deployment": config.base_deployment,
+            "training_type": config.training_type,
+            "hyperparameters": hyperparameters,
+            "training_file_id": "file-train",
+            "validation_file_id": "file-validation",
+            "dataset": report,
+            "baseline_evaluation_id": baseline["evaluation_id"],
+            "evaluation_protocol_sha256": report["evaluation_protocol_sha256"],
+            "seed": config.seed,
+        }
+
+        def job(job_id):
+            data = {
+                "id": job_id,
+                "model": "gpt-4.1-mini-2025-04-14",
+                "metadata": {
+                    "base_model": "gpt-4.1-mini",
+                    "model_version": "2025-04-14",
+                },
+                "trainingType": "globalStandard",
+                "training_file": "file-train",
+                "validation_file": "file-validation",
+                "seed": 42,
+                "hyperparameters": hyperparameters,
+            }
+            return SimpleNamespace(
+                id=job_id,
+                status="succeeded",
+                fine_tuned_model="ft:model",
+                trained_tokens=100,
+                model_dump=lambda mode: data,
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            temp = Path(temp)
+            submission_path = temp / "submission.json"
+            baseline_path = temp / "baseline.json"
+            output_path = temp / "resume.json"
+            adapt.write_json(submission_path, submission)
+            adapt.write_json(baseline_path, baseline)
+
+            jobs = SimpleNamespace(
+                retrieve=Mock(return_value=job("unrelated-job")),
+                cancel=Mock(),
+            )
+            files = SimpleNamespace(delete=Mock())
+            client = ContextStub(
+                fine_tuning=SimpleNamespace(jobs=jobs),
+                files=files,
+                models=SimpleNamespace(delete=Mock()),
+            )
+            clients = (
+                ContextStub(),
+                ContextStub(),
+                client,
+            )
+            with patch.object(adapt, "project_clients", return_value=clients), patch.object(
+                adapt,
+                "online_preflight",
+                return_value={},
+            ), self.assertRaisesRegex(RuntimeError, "resume failed"):
+                adapt.resume_evaluation(
+                    config,
+                    submission_record_path=submission_path,
+                    baseline_path=baseline_path,
+                    output_path=output_path,
+                    confirm_evaluation_cost=True,
+                )
+            jobs.cancel.assert_not_called()
+            files.delete.assert_not_called()
+
+            jobs.retrieve = Mock(return_value=job("job-1"))
+            files.delete.reset_mock()
+            client.models.delete.reset_mock()
+            with patch.object(adapt, "project_clients", return_value=clients), patch.object(
+                adapt,
+                "online_preflight",
+                return_value={},
+            ), patch.object(
+                adapt,
+                "deploy_for_evaluation",
+                side_effect=RuntimeError("deployment failed"),
+            ), patch.object(
+                adapt,
+                "arm_request",
+                return_value=SimpleNamespace(status_code=404),
+            ), self.assertRaisesRegex(RuntimeError, "resume failed"):
+                adapt.resume_evaluation(
+                    config,
+                    submission_record_path=submission_path,
+                    baseline_path=baseline_path,
+                    output_path=output_path,
+                    confirm_evaluation_cost=True,
+                )
+            self.assertEqual(
+                {call.args[0] for call in files.delete.call_args_list},
+                {"file-train", "file-validation"},
             )
 
     def test_cleanup_timeout_still_attempts_model_and_file_cleanup(self):
