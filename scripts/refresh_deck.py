@@ -99,6 +99,135 @@ def find_slide(presentation, needle):
     return next(slide for slide in presentation.slides if needle in slide_text(slide))
 
 
+def clone_shape_slide(presentation, template):
+    """Clone a shape-only pattern slide; the deck uses no image relationships here."""
+    slide = presentation.slides.add_slide(presentation.slide_layouts[0])
+    for shape in list(slide.shapes):
+        slide.shapes._spTree.remove(shape.element)
+    for shape in template.shapes:
+        slide.shapes._spTree.insert_element_before(
+            deepcopy(shape.element),
+            "p:extLst",
+        )
+    return slide
+
+
+def configure_new_pattern_slide(
+    slide,
+    *,
+    number,
+    title,
+    quote,
+    demo,
+    nodes,
+    arrow_labels,
+    benefits,
+):
+    shapes = list(slide.shapes)
+    set_text(shapes[5], f"{number:02d}")
+    set_text(shapes[6], "PATTERN")
+    set_text(shapes[7], title)
+    set_font_size(shapes[7], 27)
+    set_text(shapes[8], quote)
+    set_font_size(shapes[8], 16)
+    set_text(shapes[11], demo)
+    set_font_size(shapes[11], 13)
+
+    for index, text in zip((13, 15, 17, 19), nodes):
+        set_text(shapes[index], text)
+        set_font_size(shapes[index], 14)
+    for index, text in zip((21, 23), arrow_labels):
+        set_text(shapes[index], text)
+        set_font_size(shapes[index], 10.5)
+        shapes[index].text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+        shapes[index].text_frame.margin_left = 0
+        shapes[index].text_frame.margin_right = 0
+        shapes[index].text_frame.margin_top = 0
+        shapes[index].text_frame.margin_bottom = 0
+        shapes[index].text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+    # The template's labels were wider than the inter-box gaps, so the next
+    # node clipped their final characters. Keep the first label inside the
+    # 1.05-inch horizontal gap and the second clear of the right-hand node.
+    shapes[21].left = Inches(3.72)
+    shapes[21].top = Inches(3.43)
+    shapes[21].width = Inches(0.96)
+    shapes[21].height = Inches(0.48)
+    shapes[21].text_frame.paragraphs[0].line_spacing = 1.05
+    shapes[23].left = Inches(7.95)
+    shapes[23].top = Inches(3.32)
+    shapes[23].width = Inches(1.55)
+    shapes[23].height = Inches(0.34)
+    for index, text in zip((28, 31, 34), benefits):
+        set_text(shapes[index], text)
+        set_font_size(shapes[index], 13)
+
+
+def ensure_new_pattern_slides(presentation):
+    patterns = pattern_slides(presentation)
+    template = patterns[1]
+    specifications = (
+        {
+            "number": 13,
+            "title": "Human approval for consequential tool actions",
+            "quote": "\u201cPause the exact tool call. Approval controls intent; authorization still controls access.\u201d",
+            "demo": "Read runs immediately \u00b7 reject creates zero effects \u00b7 approve + replay creates exactly one.",
+            "nodes": (
+                "Prompt agent\nread + proposed action",
+                "Foundry approval\nexact name + arguments",
+                "Operator decision\nseparate identity",
+                "Change-control MCP\none-time nonce",
+            ),
+            "arrow_labels": ("approval\nrequest", "approve / reject"),
+            "benefits": (
+                "Read-only tools continue without an approval interruption",
+                "Rejected and stale decisions fail closed with zero side effects",
+                "Nonce + decision + effect IDs correlate; replay stays exactly once",
+            ),
+        },
+        {
+            "number": 14,
+            "title": "Model adaptation (fine-tuning & evaluation)",
+            "quote": "\u201cFine-tune stable behavior, not changing knowledge \u2014 and prove the gain on untouched data.\u201d",
+            "demo": "Base benchmark \u2192 reviewed SFT job \u2192 identical held-out eval \u2192 release gate + cleanup.",
+            "nodes": (
+                "Held-out test\nnever used for training",
+                "Base model\nbenchmark first",
+                "Foundry SFT job\nreviewed JSONL",
+                "Developer eval tier\nsame test + cleanup",
+            ),
+            "arrow_labels": ("baseline\nmetrics", "stable behavior"),
+            "benefits": (
+                "RAG / Search / Foundry IQ remain the path for changing knowledge",
+                "Schema, accuracy, adherence, tokens and latency \u2014 not training loss",
+                "No measured gain or any configured regression means no promotion",
+            ),
+        },
+        {
+            "number": 15,
+            "title": "Agent lifecycle & promotion (dev \u2192 test \u2192 prod)",
+            "quote": "\u201cPromote immutable versions behind one endpoint; roll back the selector, not the state.\u201d",
+            "demo": "Failing candidate blocked \u00b7 passing candidate pinned \u00b7 same URL \u00b7 rollback restores v1 + state.",
+            "nodes": (
+                "Release manifest\ncommit + aliases",
+                "Dev \u2192 test\nsmoke + cloud eval",
+                "Stable endpoint\nselector \u2192 candidate",
+                "Rollback\nselector \u2192 prior",
+            ),
+            "arrow_labels": ("immutable\nversion", "eval evidence"),
+            "benefits": (
+                "Current agent object model \u2014 no new legacy Agent Application",
+                "Stable endpoint URL does not change across promotion or rollback",
+                "OIDC + complete release record; conversation store is not deleted",
+            ),
+        },
+    )
+    for specification in specifications:
+        slide = patterns.get(specification["number"])
+        if slide is None:
+            slide = clone_shape_slide(presentation, template)
+        configure_new_pattern_slide(slide, **specification)
+
+
 def set_table_rows(shape, rows):
     table = shape.table
     xml_rows = list(table._tbl.tr_lst)
@@ -113,6 +242,14 @@ def set_table_rows(shape, rows):
         table.rows[row_index].height = Inches(0.46 if row_index else 0.42)
         for column_index, value in enumerate(values):
             set_text(table.cell(row_index, column_index), value)
+
+
+def equalize_table_height(shape, inches):
+    height = Inches(inches)
+    row_height = int(height / len(shape.table.rows))
+    for row in shape.table.rows:
+        row.height = row_height
+    shape.height = height
 
 
 def merge_table_row(shape, row_index):
@@ -162,7 +299,7 @@ def set_group_slide(slide, title, promise, pattern_list):
         if getattr(shape, "has_text_frame", False) and 4.2 < shape.top / 914400 < 4.8
     )
     set_text(list_shape, pattern_list)
-    set_font_size(list_shape, 15)
+    set_font_size(list_shape, 13 if len(pattern_list) > 95 else 15)
 
 
 def style_search_card(background, text_shape, live):
@@ -350,6 +487,16 @@ def update_content(presentation):
     patterns = pattern_slides(presentation)
     groups = group_slides(presentation)
 
+    title_slide = presentation.slides[0]
+    replace_text(
+        title_slide,
+        (
+            "12 patterns   \u00b7   12 demos   \u00b7   for architects & principal engineers",
+            "15 patterns   \u00b7   15 demos   \u00b7   for architects & principal engineers",
+        ),
+        "15 patterns   \u00b7   15 demos   \u00b7   for architects & principal engineers",
+    )
+
     entry = find_slide(presentation, "gateway gives you MODEL ACCESS")
     replace_text(
         entry,
@@ -363,6 +510,8 @@ def update_content(presentation):
 
     run_show = find_slide(presentation, "Run-of-show")
     tables = [shape for shape in run_show.shapes if getattr(shape, "has_table", False)]
+    if len(tables[0].table.rows) == 9:
+        insert_table_row(tables[0], source_index=3, before_index=4)
     # The source right-hand table has a merged section row at index 4. Insert a
     # normal data row before it so Pattern 9 keeps two independent cells.
     if len(tables[1].table.rows) == 8:
@@ -374,15 +523,17 @@ def update_content(presentation):
             ("PLATFORM FOUNDATION & GOVERNANCE", ""),
             ("1", "AI gateway & model access (APIM)"),
             ("8", "AI safety (Prompt Shields + Content Safety)"),
+            ("13", "Human approval for consequential tool actions"),
             ("AGENT CONSTRUCTION & KNOWLEDGE", ""),
             ("2", "Foundry Agent Service (prompt and hosted agents)"),
             ("3", "Microsoft IQ \u2014 the intelligence layer"),
             ("12", "Centralized Toolboxes (one governed MCP endpoint)"),
+            ("14", "Model adaptation (fine-tuning & evaluation)"),
             ("10", "Memory (short-term + long-term)"),
         ],
     )
     merge_table_row(tables[0], 1)
-    merge_table_row(tables[0], 4)
+    merge_table_row(tables[0], 5)
     set_table_rows(
         tables[1],
         [
@@ -395,24 +546,33 @@ def update_content(presentation):
             ("7", "Evaluation & release gate"),
             ("6", "Observability & tracing (OpenTelemetry)"),
             ("11", "Cost & latency (prompt cache + Model Router)"),
+            ("15", "Agent lifecycle & promotion (dev \u2192 test \u2192 prod)"),
         ],
     )
     merge_table_row(tables[1], 1)
     merge_table_row(tables[1], 5)
-    tables[0].height = Inches(4.58)
-    tables[1].height = Inches(4.58)
+    equalize_table_height(tables[0], 4.48)
+    equalize_table_height(tables[1], 4.48)
+    replace_text(
+        run_show,
+        (
+            "Twelve patterns in four groups. One slide, one live demo each.",
+            "Fifteen patterns in four groups. One slide, one live demo each.",
+        ),
+        "Fifteen patterns in four groups. One slide, one live demo each.",
+    )
 
     set_group_slide(
         groups[1],
         "Platform foundation & governance",
         "Establish governed model access and safety controls",
-        "01  AI gateway & model access (APIM)        \u00b7        08  AI safety",
+        "01  AI gateway   \u00b7   08  AI safety   \u00b7   13  Human approval",
     )
     set_group_slide(
         groups[2],
         "Agent construction & knowledge",
         "Build agents with governed knowledge, tools and memory",
-        "02  Foundry Agent Service  \u00b7  03  Microsoft IQ  \u00b7  12  Toolboxes  \u00b7  10  Memory",
+        "02  Agent Service  \u00b7  03  Microsoft IQ  \u00b7  12  Toolboxes  \u00b7  14  Adaptation  \u00b7  10  Memory",
     )
     set_group_slide(
         groups[3],
@@ -424,7 +584,7 @@ def update_content(presentation):
         groups[4],
         "Lifecycle, assurance & operations",
         "Evaluate, observe and optimize every release",
-        "07  Evaluation & release gate   \u00b7   06  Observability   \u00b7   11  Cost & latency",
+        "07  Evaluation   \u00b7   06  Observability   \u00b7   11  Cost   \u00b7   15  Lifecycle",
     )
 
     replace_text(
@@ -546,6 +706,16 @@ def update_content(presentation):
         ),
         "Token + latency telemetry \u00b7 rate-card cost by agent/version",
     )
+    outcome_label = next(
+        shape
+        for shape in patterns[6].shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text == "Foundry \u2014 Agents + Tracing"
+    )
+    if outcome_label.top / 914400 > 4.7:
+        for shape in patterns[6].shapes:
+            if 4.5 < shape.top / 914400 < 5.5:
+                shape.top -= Inches(0.22)
     set_font_size(
         next(
             shape
@@ -571,10 +741,12 @@ def reorder_slides(presentation):
         groups[1],
         patterns[1],
         patterns[8],
+        patterns[13],
         groups[2],
         patterns[2],
         patterns[3],
         patterns[12],
+        patterns[14],
         patterns[10],
         groups[3],
         patterns[4],
@@ -584,6 +756,7 @@ def reorder_slides(presentation):
         patterns[7],
         patterns[6],
         patterns[11],
+        patterns[15],
         close,
     ]
     slide_ids = [slide.slide_id for slide in order]
@@ -612,11 +785,12 @@ def update_footers(presentation):
 
 def main():
     presentation = Presentation(DECK)
+    ensure_new_pattern_slides(presentation)
     update_content(presentation)
     reorder_slides(presentation)
     update_footers(presentation)
     presentation.save(DECK)
-    print(f"Refreshed {DECK.name}: 20 slides, canonical names, new group order.")
+    print(f"Refreshed {DECK.name}: 23 slides, 15 canonical patterns, new group order.")
 
 
 if __name__ == "__main__":

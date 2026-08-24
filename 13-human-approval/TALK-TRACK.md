@@ -1,0 +1,78 @@
+# Pattern 13 — Human approval for consequential tool actions
+
+**Group:** Platform foundation & governance  ·  **Runs 3rd of 15** in the run order
+
+**Slide title:** *Pause the exact tool call — approve intent, then enforce it downstream.*
+
+## In brief
+> "Human approval belongs at the moment an agent is about to cause a consequential
+> side effect. This prompt agent has two MCP tools. `get_change_request` is read-only and
+> runs without interruption. `schedule_change` is configured with
+> `require_approval=always`, so the Responses API returns an `mcp_approval_request`
+> instead of calling the service.
+>
+> The operator sees the exact normalized tool name and arguments. Reject records the
+> decision and schedules nothing. Approve sends an explicit `McpApprovalResponse`, then
+> Foundry invokes the tool. The service still checks downstream authorization, expiry,
+> argument equality and idempotency. Approval is a runtime control — it is not a
+> substitute for authorization."
+
+## What is implemented
+- **Current Foundry flow** — a versioned prompt agent with `MCPTool`,
+  selective `require_approval`, Responses `mcp_approval_request`, and
+  `McpApprovalResponse`.
+- **Two-tool MCP service** — read-only `get_change_request`; consequential
+  `schedule_change`.
+- **Fail-closed state machine** — each reviewed request already contains a server-issued,
+  one-time opaque approval nonce. The operator channel binds it to the exact Foundry
+  approval-request ID, tool name and normalized arguments before a decision is accepted.
+  Invented, missing, stale or mismatched approvals fail.
+- **Exactly-once effect** — request, Foundry approval-request, operator decision and
+  deterministic side-effect IDs are retained in one audit view.
+- **Remote deployment** — Azure Container Apps with HTTPS ingress and one ephemeral
+  SQLite replica by default. Azure Files is an explicit opt-in only where shared-key
+  mounts are permitted; SQLite is demo-only in either mode.
+
+## Running it
+1. Deploy the service using [`infra/README.md`](infra/README.md), then create a Foundry
+   project connection that stores the endpoint and `x-mcp-api-key`.
+2. Set `MCP_CHANGE_CONTROL_URL`, `MCP_CHANGE_CONTROL_CONNECTION_NAME`,
+   `MCP_CHANGE_CONTROL_TOOL_API_KEY`, and the separate operator-only
+   `MCP_CHANGE_CONTROL_OPERATOR_API_KEY` in the current process.
+3. Reject path:
+   `uv run python 13-human-approval/run_approval_demo.py --change-request CRQ-1002`,
+   inspect the call, type `REJECT`, and show **zero** side effects.
+4. Approve + replay path:
+   `uv run python 13-human-approval/run_approval_demo.py --change-request CRQ-1003`,
+   inspect the call, type `APPROVE`, and show one correlated side effect. The script
+   replays the same decision and tool arguments; the count remains one.
+5. Run local negative-path tests:
+   `uv run python -m unittest discover -s tests -p "test_human_approval.py" -v`.
+
+The main demo has no auto-approve flag. A Foundry prompt agent cannot call localhost,
+so the live path uses the remote Container App and a Foundry project connection; local
+tests remain the negative-path safety net.
+
+## Live verification (2026-08-24)
+- The remote Container App exposed MCP over HTTPS; the Foundry connection held only the
+  tool credential. Tool credentials received 401 on operator routes, and operator
+  credentials received 401 on MCP.
+- The read-only tool completed without an approval request.
+- A rejected `schedule_change` produced zero side effects.
+- An approved call paused on a real Foundry `mcp_approval_request`, then produced one
+  correlated side effect after the operator response.
+- Replaying the same approved call returned the same side-effect ID; the count remained one.
+
+## Security and correctness boundaries
+- The project connection holds a **tool-only** credential. A separate operator credential
+  protects pending-registration, decision and audit routes; the two values must differ.
+- The service never prints or persists bearer tokens or either credential.
+- A human approves the exact normalized call, not a natural-language summary.
+- A server-issued nonce is bound to one request and exact arguments, then consumed once.
+  The operator decision expires after five minutes.
+- The MCP key is downstream authentication. Production authorization should also check
+  workload identity, tenant, change ownership and policy in the system of record.
+- The SQLite store and single-replica limit are for deterministic demonstration only.
+
+## The one-liner
+> "Pause before consequence, show the exact call, and still enforce authorization at the tool."

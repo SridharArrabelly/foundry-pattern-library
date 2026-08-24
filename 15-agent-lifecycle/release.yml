@@ -1,0 +1,71 @@
+name: Pattern 15 agent lifecycle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: pattern15-${{ vars.LIFECYCLE_PROD_PROJECT_ENDPOINT }}-enterprise-triage-router
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Validate manifest and aliases
+        run: uv run python 15-agent-lifecycle/lifecycle.py validate
+        env:
+          LIFECYCLE_MODEL_DEPLOYMENT: ${{ vars.LIFECYCLE_MODEL_DEPLOYMENT }}
+          LIFECYCLE_DEV_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_DEV_PROJECT_ENDPOINT }}
+          LIFECYCLE_TEST_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_TEST_PROJECT_ENDPOINT }}
+          LIFECYCLE_PROD_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_PROD_PROJECT_ENDPOINT }}
+      - name: Release through dev, test, and prod
+        id: release
+        run: uv run python 15-agent-lifecycle/lifecycle.py release --approver "$RELEASE_APPROVER"
+        env:
+          RELEASE_APPROVER: ${{ github.actor }}
+          LIFECYCLE_RECORD_SIGNING_KEY: ${{ secrets.LIFECYCLE_RECORD_SIGNING_KEY }}
+          LIFECYCLE_ARTIFACT_DIR: 15-agent-lifecycle/artifacts
+          LIFECYCLE_MODEL_DEPLOYMENT: ${{ vars.LIFECYCLE_MODEL_DEPLOYMENT }}
+          LIFECYCLE_DEV_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_DEV_PROJECT_ENDPOINT }}
+          LIFECYCLE_TEST_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_TEST_PROJECT_ENDPOINT }}
+          LIFECYCLE_PROD_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_PROD_PROJECT_ENDPOINT }}
+      - name: Persist protected release evidence
+        id: audit
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pattern15-release-${{ github.run_id }}
+          path: 15-agent-lifecycle/artifacts/*.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Compensate when audit persistence fails
+        if: always() && steps.release.outcome == 'success' && steps.audit.outcome == 'failure'
+        run: |
+          record="$(ls -t 15-agent-lifecycle/artifacts/release-*.json | head -1)"
+          uv run python 15-agent-lifecycle/lifecycle.py rollback \
+            --record "$record" --approver "$RELEASE_APPROVER"
+        env:
+          RELEASE_APPROVER: ${{ github.actor }}
+          LIFECYCLE_RECORD_SIGNING_KEY: ${{ secrets.LIFECYCLE_RECORD_SIGNING_KEY }}
+          LIFECYCLE_ARTIFACT_DIR: 15-agent-lifecycle/artifacts
+          LIFECYCLE_MODEL_DEPLOYMENT: ${{ vars.LIFECYCLE_MODEL_DEPLOYMENT }}
+          LIFECYCLE_DEV_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_DEV_PROJECT_ENDPOINT }}
+          LIFECYCLE_TEST_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_TEST_PROJECT_ENDPOINT }}
+          LIFECYCLE_PROD_PROJECT_ENDPOINT: ${{ vars.LIFECYCLE_PROD_PROJECT_ENDPOINT }}
+      - name: Fail when release evidence was not persisted
+        if: always() && steps.audit.outcome == 'failure'
+        run: exit 1

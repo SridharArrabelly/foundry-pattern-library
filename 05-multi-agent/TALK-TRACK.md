@@ -1,6 +1,6 @@
 # Pattern 5 — Multi-agent orchestration (Agent Framework)
 
-**Group:** Orchestration & interoperability  ·  **Runs 8th of 12** in the run order
+**Group:** Orchestration & interoperability  ·  **Runs 10th of 15** in the run order
 
 **Slide title:** *Multi-agent — when it earns its keep. Orchestrate specialists, don't hand-wire them.*
 

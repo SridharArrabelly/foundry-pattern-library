@@ -1,0 +1,10 @@
+{
+  "minimum_tuned_accuracy": 0.9,
+  "minimum_accuracy_gain": 0.25,
+  "minimum_schema_validity": 1.0,
+  "minimum_task_adherence": 1.0,
+  "minimum_task_adherence_gain": 0.0,
+  "maximum_latency_regression_ratio": 0.25,
+  "maximum_output_token_regression_ratio": 0.1,
+  "block_per_category_accuracy_regression": true
+}

@@ -1,6 +1,6 @@
 # Pattern 4 — Agentic Loop (build skills, not agents)
 
-**Group:** Orchestration & interoperability  ·  **Runs 7th of 12** in the run order
+**Group:** Orchestration & interoperability  ·  **Runs 9th of 15** in the run order
 
 **Slide title:** *One agent. One loop (Plan → Act → Observe). N swappable skills.*
 

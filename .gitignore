@@ -27,6 +27,9 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.sqlite3
+**/artifacts/
+14-model-adaptation/generated/
 
 # ---- OS / editor ----
 .DS_Store
