@@ -1,0 +1,12 @@
+{"id":"test-access-1","input":"MFA succeeds, but the application says my role is not authorized.","expected_category":"AX7"}
+{"id":"test-access-2","input":"Give the release managers approval rights in the staging workspace.","expected_category":"AX7"}
+{"id":"test-access-3","input":"I cannot sign in after my account was reactivated.","expected_category":"AX7"}
+{"id":"test-service-1","input":"The catalog endpoint intermittently returns gateway errors.","expected_category":"BR2"}
+{"id":"test-service-2","input":"Reports load, but their data is six hours behind.","expected_category":"BR2"}
+{"id":"test-service-3","input":"The desktop client freezes when users open settings.","expected_category":"BR2"}
+{"id":"test-billing-1","input":"Why was the same subscription period billed on two invoices?","expected_category":"CZ9"}
+{"id":"test-billing-2","input":"The negotiated credit is missing from this statement.","expected_category":"CZ9"}
+{"id":"test-billing-3","input":"Which usage dates are included in the current charge?","expected_category":"CZ9"}
+{"id":"test-unsupported-1","input":"Choose a theme for our annual conference.","expected_category":"UNSUPPORTED"}
+{"id":"test-unsupported-2","input":"Prepare interview questions for a marketing role.","expected_category":"UNSUPPORTED"}
+{"id":"test-unsupported-3","input":"Suggest a menu for the office celebration.","expected_category":"UNSUPPORTED"}
