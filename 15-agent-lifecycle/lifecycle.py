@@ -502,10 +502,20 @@ def compensate_release(
     previous_version: str,
     toolbox_update: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    errors = []
+    smoke = None
+    try:
+        adapter.pin(previous_version)
+        smoke = adapter.smoke("approved")
+    except (RuntimeError, TimeoutError, HttpResponseError) as error:
+        errors.append(f"agent selector recovery failed: {error}")
     if toolbox_update is not None:
-        adapter.restore_toolbox_default(toolbox_update)
-    adapter.pin(previous_version)
-    smoke = adapter.smoke("approved")
+        try:
+            adapter.restore_toolbox_default(toolbox_update)
+        except (RuntimeError, TimeoutError, HttpResponseError) as error:
+            errors.append(f"Toolbox recovery failed: {error}")
+    if errors:
+        raise RuntimeError("; ".join(errors))
     return {
         "selector": str(previous_version),
         "stable_endpoint": adapter.endpoint_url(),
@@ -521,13 +531,23 @@ def compensate_rollback(
     toolbox_update: dict[str, Any] | None,
     toolbox_mutated: bool,
 ) -> dict[str, Any]:
+    errors = []
+    smoke = None
+    try:
+        adapter.pin(promoted_version)
+        smoke = adapter.smoke("candidate")
+    except (RuntimeError, TimeoutError, HttpResponseError) as error:
+        errors.append(f"agent selector recovery failed: {error}")
     if toolbox_update is not None and toolbox_mutated:
-        adapter.set_toolbox_default(
-            toolbox_update["name"],
-            toolbox_update["default"],
-        )
-    adapter.pin(promoted_version)
-    smoke = adapter.smoke("candidate")
+        try:
+            adapter.set_toolbox_default(
+                toolbox_update["name"],
+                toolbox_update["default"],
+            )
+        except (RuntimeError, TimeoutError, HttpResponseError) as error:
+            errors.append(f"Toolbox recovery failed: {error}")
+    if errors:
+        raise RuntimeError("; ".join(errors))
     return {
         "selector": str(promoted_version),
         "stable_endpoint": adapter.endpoint_url(),
@@ -844,6 +864,8 @@ class FoundryEnvironment:
         toolbox_name: str | None,
         toolbox_version: str | None,
         changed: bool,
+        *,
+        mutation_callback=None,
     ) -> dict[str, Any] | None:
         if not changed:
             return None
@@ -854,18 +876,21 @@ class FoundryEnvironment:
         toolbox = self.project.toolboxes.get(toolbox_name)
         before = str(toolbox.default_version)
         self.project.toolboxes.get_version(toolbox_name, toolbox_version)
+        intent = {
+            "name": toolbox_name,
+            "previous": before,
+            "default": str(toolbox_version),
+        }
+        if mutation_callback is not None:
+            mutation_callback(intent)
         self.project.toolboxes.update(
             toolbox_name,
             default_version=toolbox_version,
         )
         after = str(self.project.toolboxes.get(toolbox_name).default_version)
         if after != str(toolbox_version):
-            self.project.toolboxes.update(
-                toolbox_name,
-                default_version=before,
-            )
             raise RuntimeError("Toolbox default promotion did not match requested version")
-        return {"name": toolbox_name, "previous": before, "default": after}
+        return {**intent, "default": after}
 
     def set_toolbox_default(self, toolbox_name: str, version: str) -> None:
         self.project.toolboxes.update(
@@ -1199,6 +1224,10 @@ def release(manifest: dict[str, Any], approver: str, demo_failure: bool) -> Path
             )
             promoted_smoke = environments["prod"].smoke("candidate")
             toolbox = manifest["aliases"]["toolboxes"]["governed-tools"]
+
+            def mark_toolbox_mutated(intent):
+                mutation["toolbox"] = intent
+
             toolbox_update = environments["prod"].update_toolbox_default(
                 aliases["toolboxes"]["governed-tools"],
                 (
@@ -1206,8 +1235,8 @@ def release(manifest: dict[str, Any], approver: str, demo_failure: bool) -> Path
                     or None
                 ),
                 bool(toolbox["changed"]),
+                mutation_callback=mark_toolbox_mutated,
             )
-            mutation["toolbox"] = toolbox_update
             if promotion["stable_endpoint_after"] != prod_endpoint_before:
                 raise RuntimeError("production stable endpoint changed")
             record["environments"]["prod"].update({

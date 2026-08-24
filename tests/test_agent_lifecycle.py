@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -241,6 +241,10 @@ class AgentLifecycleTests(unittest.TestCase):
         )
         self.assertIn("api-version=v1", url)
         self.assertNotIn("agent_reference", post.call_args.kwargs["json"])
+        self.assertEqual(
+            post.call_args.kwargs["headers"]["Authorization"],
+            "Bearer not-logged",
+        )
 
         conflicting = SimpleNamespace(
             status_code=200,
@@ -407,6 +411,75 @@ class AgentLifecycleTests(unittest.TestCase):
         self.assertEqual(adapter.toolbox_sets, [("tools", "2")])
         self.assertEqual(adapter.selected_version(), "2")
         self.assertTrue(recovery["toolbox_restored_to_promoted"])
+
+    def test_compensation_attempts_agent_and_toolbox_independently(self):
+        class FailingRecovery(FakeAdapter):
+            def __init__(self, fail_agent, fail_toolbox):
+                super().__init__(version="2")
+                self.fail_agent = fail_agent
+                self.fail_toolbox = fail_toolbox
+                self.agent_attempted = False
+                self.toolbox_attempted = False
+
+            def pin(self, version):
+                self.agent_attempted = True
+                if self.fail_agent:
+                    raise RuntimeError("pin failed")
+                super().pin(version)
+
+            def restore_toolbox_default(self, update, *, mutation_callback=None):
+                self.toolbox_attempted = True
+                if self.fail_toolbox:
+                    raise RuntimeError("toolbox failed")
+                super().restore_toolbox_default(
+                    update,
+                    mutation_callback=mutation_callback,
+                )
+
+        update = {"name": "tools", "previous": "1", "default": "2"}
+        for fail_agent, fail_toolbox in ((False, True), (True, False), (True, True)):
+            with self.subTest(
+                fail_agent=fail_agent,
+                fail_toolbox=fail_toolbox,
+            ):
+                adapter = FailingRecovery(fail_agent, fail_toolbox)
+                with self.assertRaises(RuntimeError) as raised:
+                    lifecycle.compensate_release(
+                        adapter,
+                        previous_version="1",
+                        toolbox_update=update,
+                    )
+                self.assertTrue(adapter.agent_attempted)
+                self.assertTrue(adapter.toolbox_attempted)
+                if fail_agent and fail_toolbox:
+                    self.assertIn("agent selector recovery failed", str(raised.exception))
+                    self.assertIn("Toolbox recovery failed", str(raised.exception))
+
+    def test_toolbox_mutation_intent_is_captured_before_verification(self):
+        toolboxes = SimpleNamespace()
+        toolboxes.get = Mock(
+            side_effect=[
+                SimpleNamespace(default_version="1"),
+                SimpleNamespace(default_version="unexpected"),
+            ]
+        )
+        toolboxes.get_version = Mock()
+        toolboxes.update = Mock()
+        environment = object.__new__(lifecycle.FoundryEnvironment)
+        environment.project = SimpleNamespace(toolboxes=toolboxes)
+        captured = {}
+        with self.assertRaisesRegex(RuntimeError, "did not match"):
+            environment.update_toolbox_default(
+                "tools",
+                "2",
+                True,
+                mutation_callback=lambda intent: captured.update(intent),
+            )
+        self.assertEqual(
+            captured,
+            {"name": "tools", "previous": "1", "default": "2"},
+        )
+        toolboxes.update.assert_called_once_with("tools", default_version="2")
 
     def test_cloud_gate_fails_on_missing_or_incomplete_metrics(self):
         valid_results = [
