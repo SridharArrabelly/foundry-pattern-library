@@ -79,11 +79,11 @@ Verified on three isolated projects under one Foundry resource:
 - an explicit failure probe was blocked and production stayed on version 1;
 - the passing test candidate scored 1.0 classification accuracy and 1.0 schema validity;
 - the production stable URL returned `approved` on version 1, the **same URL** returned
-  `candidate` after the explicit version-2 selector update, and rollback returned it to
+  `candidate` after the explicit candidate selector update, and rollback returned it to
   `approved` on version 1;
 - the same stable-endpoint conversation was continued after rollback, with its prior
-  items and metadata still present; its observed version affinity is recorded separately
-  from the stateless rollback smoke.
+  items and metadata still present. It retained `candidate` version affinity while new
+  stateless calls returned `approved`; both observations are HMAC-signed in the record.
 
 The release/evaluation/rollback records are runtime evidence and are not committed because
 they contain live resource URLs and identifiers.

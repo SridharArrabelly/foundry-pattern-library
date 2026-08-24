@@ -1,6 +1,6 @@
 # Pattern 8 — AI safety (Prompt Shields + Content Safety)
 
-**Group:** Platform foundation & governance  ·  **Runs 2nd of 12** in the run order
+**Group:** Platform foundation & governance  ·  **Runs 2nd of 15** in the run order
 
 **Slide title:** *The safety + identity + data-governance plane — in front of every turn.*
 

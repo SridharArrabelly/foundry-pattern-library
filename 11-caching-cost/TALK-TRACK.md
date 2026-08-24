@@ -1,6 +1,6 @@
 # Pattern 11 — Cost & latency (prompt cache + Model Router)
 
-**Group:** Lifecycle, assurance & operations  ·  **Runs 12th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 14th of 15** in the run order
 
 **Slide title:** *Two cache layers and a router — cheaper without touching your app.*
 

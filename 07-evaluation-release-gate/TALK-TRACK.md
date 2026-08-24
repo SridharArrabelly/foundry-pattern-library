@@ -1,6 +1,6 @@
 # Pattern 7 — Evaluation & release gate
 
-**Group:** Lifecycle, assurance & operations  ·  **Runs 10th of 12** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 12th of 15** in the run order
 
 **Slide title:** *Evaluation is the starting point — then hill-climb quality, cost and latency.*
 
