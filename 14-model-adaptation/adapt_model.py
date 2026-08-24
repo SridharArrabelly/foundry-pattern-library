@@ -333,6 +333,11 @@ class Config:
                 "evaluation SKU (wire value 'DeveloperTier' for ARM 2026-07-01); "
                 "use a separate production promotion process"
             )
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,54}", self.tuned_deployment):
+            raise ValueError(
+                "FINETUNE_DEPLOYMENT_NAME is a lowercase deployment prefix "
+                "(3-55 chars: letters, numbers, hyphens)"
+            )
         if self.n_epochs <= 0 or self.batch_size <= 0:
             raise ValueError("fine-tuning hyperparameters must be positive")
         if self.learning_rate_multiplier <= 0:
@@ -363,12 +368,15 @@ def arm_request(
     *,
     json_body: dict[str, Any] | None = None,
     expected: frozenset[int] = frozenset({200}),
+    extra_headers: dict[str, str] | None = None,
 ) -> requests.Response:
     token = credential.get_token("https://management.azure.com/.default").token
+    headers = {"Authorization": f"Bearer {token}"}
+    headers.update(extra_headers or {})
     response = requests.request(
         method,
         url,
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
         json=json_body,
         timeout=60,
     )
@@ -405,6 +413,12 @@ def deployment_url(config: Config, deployment_name: str | None = None) -> str:
         f"https://management.azure.com{config.resource_id}/deployments{suffix}"
         f"?api-version={config.arm_deployment_api_version}"
     )
+
+
+def temporary_deployment_name(config: Config, job_id: str) -> str:
+    suffix = hashlib.sha256(job_id.encode("utf-8")).hexdigest()[:8]
+    prefix = config.tuned_deployment[: 63 - len(suffix)]
+    return f"{prefix}-{suffix}"
 
 
 def action_allowed(permission_rows: list[dict[str, Any]], action: str) -> bool:
@@ -474,12 +488,6 @@ def online_preflight(
             f"base deployment version is {model.get('version')!r}, expected "
             f"{config.base_model_version!r}"
         )
-    if any(item.get("name") == config.tuned_deployment for item in deployments):
-        raise RuntimeError(
-            f"temporary deployment name {config.tuned_deployment!r} already exists; "
-            "choose a unique FINETUNE_DEPLOYMENT_NAME rather than replacing it"
-        )
-
     permissions_url = (
         f"https://management.azure.com{config.resource_id}/providers/"
         "Microsoft.Authorization/permissions?api-version=2022-04-01"
@@ -976,24 +984,47 @@ def deploy_for_evaluation(
     credential,
     config: Config,
     fine_tuned_model: str,
+    job_id: str,
+    *,
+    on_accepted=None,
 ) -> dict[str, Any]:
+    name = temporary_deployment_name(config, job_id)
     body = evaluation_deployment_body(config, fine_tuned_model)
-    url = deployment_url(config, config.tuned_deployment)
-    arm_request(
+    url = deployment_url(config, name)
+    existing = arm_request(
+        credential,
+        "GET",
+        url,
+        expected=frozenset({200, 404}),
+    )
+    if existing.status_code == 200:
+        raise RuntimeError(
+            f"temporary deployment {name!r} already exists; ownership is not assumed"
+        )
+    accepted = arm_request(
         credential,
         "PUT",
         url,
         json_body=body,
         expected=frozenset({200, 201, 202}),
+        extra_headers={"If-None-Match": "*"},
     )
+    ownership = {
+        "deployment_name": name,
+        "fine_tuned_model": fine_tuned_model,
+        "sku": config.deployment_sku,
+        "put_status_code": accepted.status_code,
+        "accepted_at": now_iso(),
+    }
+    if on_accepted is not None:
+        on_accepted(ownership)
     deadline = time.monotonic() + 900
     while time.monotonic() < deadline:
         deployment = arm_request(credential, "GET", url).json()
         state = deployment.get("properties", {}).get("provisioningState")
         if state == "Succeeded":
             return {
-                "deployment_name": config.tuned_deployment,
-                "sku": config.deployment_sku,
+                **ownership,
                 "created_at": now_iso(),
                 "lifetime": "DeveloperTier is evaluation-only and limited to 24 hours",
             }
@@ -1034,17 +1065,46 @@ def cleanup(
             cleanup_result["errors"].append(
                 f"fine-tuning job cleanup failed: {type(error).__name__}: {error}"
             )
-    if record.get("deployment_requested") == config.tuned_deployment:
-        temporary_deployment_url = deployment_url(config, config.tuned_deployment)
+    ownership = record.get("owned_deployment")
+    if ownership:
+        temporary_deployment_url = deployment_url(
+            config,
+            ownership["deployment_name"],
+        )
         try:
-            response = arm_request(
+            probe = arm_request(
                 credential,
-                "DELETE",
+                "GET",
                 temporary_deployment_url,
-                expected=frozenset({200, 202, 204, 404}),
+                expected=frozenset({200, 404}),
             )
-            cleanup_result["deployment_deleted"] = response.status_code != 404
-            if response.status_code != 404:
+            if probe.status_code == 404:
+                cleanup_result["deployment_deleted"] = True
+                cleanup_result["deployment_note"] = "already absent"
+            else:
+                deployment = probe.json()
+                observed_model = (
+                    deployment.get("properties", {})
+                    .get("model", {})
+                    .get("name")
+                )
+                observed_sku = deployment.get("sku", {}).get("name")
+                if (
+                    observed_model != ownership["fine_tuned_model"]
+                    or observed_sku != ownership["sku"]
+                ):
+                    raise RuntimeError(
+                        "temporary deployment ownership mismatch; refusing delete "
+                        f"(model={observed_model!r}, sku={observed_sku!r})"
+                    )
+                response = arm_request(
+                    credential,
+                    "DELETE",
+                    temporary_deployment_url,
+                    expected=frozenset({200, 202, 204, 404}),
+                )
+                cleanup_result["deployment_deleted"] = response.status_code != 404
+            if probe.status_code != 404:
                 deadline = time.monotonic() + 600
                 while time.monotonic() < deadline:
                     probe = arm_request(
@@ -1157,15 +1217,21 @@ def run_pipeline(config: Config, *, confirm_cost: bool, poll_seconds: int) -> in
             record.update(submitted)
             write_json(output_path, record)
             record = monitor_job(client, record, poll_seconds)
-            record["deployment_requested"] = config.tuned_deployment
+
+            def mark_owned_deployment(ownership):
+                record["owned_deployment"] = ownership
+                write_json(output_path, record)
+
             record["temporary_deployment"] = deploy_for_evaluation(
                 credential,
                 config,
                 record["fine_tuned_model"],
+                record["job_id"],
+                on_accepted=mark_owned_deployment,
             )
             tuned = evaluate(
                 client,
-                deployment=config.tuned_deployment,
+                deployment=record["owned_deployment"]["deployment_name"],
                 label="tuned",
             )
             thresholds = load_json(THRESHOLDS_PATH)
@@ -1264,15 +1330,20 @@ def resume_evaluation(
                     * config.training_price_per_million_usd,
                     6,
                 )
-            record["deployment_requested"] = config.tuned_deployment
+            def mark_owned_deployment(ownership):
+                record["owned_deployment"] = ownership
+                write_json(output_path, record)
+
             record["temporary_deployment"] = deploy_for_evaluation(
                 credential,
                 config,
                 fine_tuned_model,
+                record["job_id"],
+                on_accepted=mark_owned_deployment,
             )
             tuned = evaluate(
                 client,
-                deployment=config.tuned_deployment,
+                deployment=record["owned_deployment"]["deployment_name"],
                 label="tuned",
             )
             gate = compare_evaluations(

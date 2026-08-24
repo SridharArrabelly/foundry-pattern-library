@@ -85,6 +85,9 @@ therefore block fine-tuning as unnecessary — that is a successful cost decisio
   does not match the immutable submission record.
 - If a failure leaves a job nonterminal, cleanup cancels it, waits for terminal state,
   then removes uploaded files so a retry cannot accidentally duplicate paid training.
+- Temporary deployment names include a verified job-derived suffix. Ownership is recorded
+  only after a create-if-absent PUT is accepted, and cleanup rechecks the exact model and
+  SKU before deleting; a raced or foreign deployment is never assumed or removed.
 
 ## Live verification (2026-08-24)
 - `gpt-4.1-mini` SFT job succeeded on reviewed data: 8,073 trained tokens, about

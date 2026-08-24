@@ -494,7 +494,11 @@ class ModelAdaptationTests(unittest.TestCase):
         )
         record = {
             "job_id": "job-1",
-            "deployment_requested": "temporary",
+            "owned_deployment": {
+                "deployment_name": "temporary-owned123",
+                "fine_tuned_model": "ft:model",
+                "sku": "DeveloperTier",
+            },
             "fine_tuned_model": "ft:model",
             "training_file_id": "file-train",
             "validation_file_id": "file-validation",
@@ -556,6 +560,132 @@ class ModelAdaptationTests(unittest.TestCase):
         self.assertEqual(
             record["cleanup"]["job_status_after_cleanup"],
             "cancelled",
+        )
+
+    def test_temporary_deployment_ownership_prevents_foreign_delete(self):
+        config = adapt.Config(
+            project_endpoint="https://example.services.ai.azure.com/api/projects/default",
+            resource_id=(
+                "/subscriptions/sub/resourceGroups/rg/providers/"
+                "Microsoft.CognitiveServices/accounts/account"
+            ),
+            region="swedencentral",
+            base_model="gpt-4.1-mini",
+            base_model_version="2025-04-14",
+            base_deployment="gpt-4.1-mini",
+            tuned_deployment="temporary-eval",
+            training_type="GlobalStandard",
+            deployment_sku="DeveloperTier",
+            n_epochs=3,
+            batch_size=1,
+            learning_rate_multiplier=0.1,
+            seed=42,
+            training_price_per_million_usd=5.0,
+            arm_account_api_version="2026-07-01",
+            arm_deployment_api_version="2026-07-01",
+        )
+        missing = SimpleNamespace(status_code=404)
+        exists = SimpleNamespace(status_code=200)
+        accepted = SimpleNamespace(status_code=202)
+        failed = SimpleNamespace(
+            status_code=200,
+            json=lambda: {"properties": {"provisioningState": "Failed"}},
+        )
+        ownership = Mock()
+
+        with patch.object(
+            adapt,
+            "arm_request",
+            side_effect=[missing, RuntimeError("PUT failed")],
+        ), self.assertRaisesRegex(RuntimeError, "PUT failed"):
+            adapt.deploy_for_evaluation(
+                SimpleNamespace(),
+                config,
+                "ft:model",
+                "job-1",
+                on_accepted=ownership,
+            )
+        ownership.assert_not_called()
+
+        with patch.object(
+            adapt,
+            "arm_request",
+            return_value=exists,
+        ) as request, self.assertRaisesRegex(RuntimeError, "already exists"):
+            adapt.deploy_for_evaluation(
+                SimpleNamespace(),
+                config,
+                "ft:model",
+                "job-1",
+                on_accepted=ownership,
+            )
+        self.assertEqual(request.call_count, 1)
+
+        captured = {}
+        with patch.object(
+            adapt,
+            "arm_request",
+            side_effect=[missing, accepted, failed],
+        ), self.assertRaisesRegex(RuntimeError, "provisioning ended"):
+            adapt.deploy_for_evaluation(
+                SimpleNamespace(),
+                config,
+                "ft:model",
+                "job-1",
+                on_accepted=lambda value: captured.update(value),
+            )
+        self.assertEqual(captured["fine_tuned_model"], "ft:model")
+        self.assertEqual(captured["sku"], "DeveloperTier")
+        self.assertTrue(captured["deployment_name"].startswith("temporary-eval-"))
+        self.assertNotEqual(captured["deployment_name"], config.tuned_deployment)
+
+        matching = SimpleNamespace(
+            status_code=200,
+            json=lambda: {
+                "properties": {"model": {"name": "ft:model"}},
+                "sku": {"name": "DeveloperTier"},
+            },
+        )
+        deleted = SimpleNamespace(status_code=204)
+        gone = SimpleNamespace(status_code=404)
+        client = SimpleNamespace(
+            fine_tuning=SimpleNamespace(
+                jobs=SimpleNamespace(retrieve=Mock(), cancel=Mock())
+            ),
+            models=SimpleNamespace(delete=Mock()),
+            files=SimpleNamespace(delete=Mock()),
+        )
+        record = {
+            "owned_deployment": captured,
+            "fine_tuned_model": "ft:model",
+        }
+        with patch.object(
+            adapt,
+            "arm_request",
+            side_effect=[matching, deleted, gone],
+        ) as request:
+            adapt.cleanup(SimpleNamespace(), client, config, record)
+        self.assertEqual(request.call_args_list[1].args[1], "DELETE")
+
+        foreign = SimpleNamespace(
+            status_code=200,
+            json=lambda: {
+                "properties": {"model": {"name": "someone-elses-model"}},
+                "sku": {"name": "DeveloperTier"},
+            },
+        )
+        foreign_record = {
+            "owned_deployment": captured,
+            "fine_tuned_model": "ft:model",
+        }
+        with patch.object(
+            adapt,
+            "arm_request",
+            return_value=foreign,
+        ) as request, self.assertRaisesRegex(RuntimeError, "ownership mismatch"):
+            adapt.cleanup(SimpleNamespace(), client, config, foreign_record)
+        self.assertTrue(
+            all(call.args[1] != "DELETE" for call in request.call_args_list)
         )
 
     def test_current_training_and_deployment_wire_payloads_are_exact(self):
