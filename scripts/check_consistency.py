@@ -126,8 +126,7 @@ def ordinal(value: int) -> str:
 def check_readme():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     inside = readme.split("## What's inside", 1)[1].split("### The gateway thread", 1)[0]
-    diagrams = readme.split("## Pattern diagrams", 1)[1].split("## Suggested run-of-show", 1)[0]
-    run_show = readme.split("## Suggested run-of-show", 1)[1]
+    diagrams = readme.split("## Pattern diagrams", 1)[1]
 
     expected_numbers = [item[0] for item in PATTERNS]
     table_numbers = [
@@ -142,18 +141,10 @@ def check_readme():
     ]
     if diagram_numbers != expected_numbers:
         fail(f"README diagram order {diagram_numbers}, expected {expected_numbers}")
-    run_numbers = [
-        int(value)
-        for value in re.findall(
-            r"^\| [^|]+ \| (\d+) \| [^|]+ \|$",
-            run_show,
-            flags=re.MULTILINE,
-        )
-    ]
-    if run_numbers != expected_numbers:
-        fail(f"README run-of-show order {run_numbers}, expected {expected_numbers}")
     if "Fifteen patterns in four groups." not in readme:
         fail("README pattern count is not fifteen")
+    if "## Suggested run-of-show" in readme:
+        fail("README should not include a presentation run-of-show")
 
     for number, folder, name, group in PATTERNS:
         table_prefix = f"| {number} | `{folder}/` | {name} |"
@@ -161,9 +152,6 @@ def check_readme():
             fail(f"README group table missing: {table_prefix}")
         if f"### {number} \u00b7 {name}" not in diagrams:
             fail(f"README diagram heading missing: {number} {name}")
-        run_row = f"| {group} | {number} | {name} |"
-        if run_row not in run_show:
-            fail(f"README run-of-show missing: {run_row}")
 
 
 def slide_text(slide) -> str:
