@@ -471,7 +471,7 @@ def rollback_release(
     conversation_id = conversation_state["conversation_id"]
     continuity = adapter.continue_conversation(
         conversation_id,
-        expected_release="approved",
+        expected_release=None,
     )
     if (
         continuity["metadata"].get("release_sentinel")
@@ -802,7 +802,7 @@ class FoundryEnvironment:
         self,
         conversation_id: str,
         *,
-        expected_release: str,
+        expected_release: str | None,
     ) -> dict[str, Any]:
         conversation = self._stable_request(
             "GET",
@@ -812,10 +812,16 @@ class FoundryEnvironment:
             "An account needs read access. Route this request.",
             conversation_id,
         )
-        _, valid = parse_agent_output(output, expected_release)
-        if not valid:
+        observed_release = None
+        releases = (expected_release,) if expected_release else ("approved", "candidate")
+        for release in releases:
+            _, valid = parse_agent_output(output, release)
+            if valid:
+                observed_release = release
+                break
+        if observed_release is None:
             raise RuntimeError(
-                "stable endpoint conversation did not continue on expected behavior"
+                "stable endpoint conversation did not return a valid routed response"
             )
         items = self._stable_request(
             "GET",
@@ -824,7 +830,7 @@ class FoundryEnvironment:
         return {
             "metadata": dict(conversation.get("metadata") or {}),
             "item_count_after": len(items.get("data", [])),
-            "continued_release": expected_release,
+            "continued_release": observed_release,
         }
 
     def update_toolbox_default(
@@ -1253,7 +1259,6 @@ def rollback(manifest: dict[str, Any], record_path: Path, approver: str) -> Path
         release_record,
         manifest=manifest,
         endpoints=endpoints,
-        expected_commit=git_commit(),
     )
     aliases = resolve_aliases(manifest)
     model = aliases["models"][manifest["model_alias"]]

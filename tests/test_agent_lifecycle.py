@@ -64,7 +64,7 @@ class FakeAdapter:
                 "release_sentinel": "preserve-across-selector-change"
             },
             "item_count_after": 4,
-            "continued_release": expected_release,
+            "continued_release": expected_release or "candidate",
         }
 
 

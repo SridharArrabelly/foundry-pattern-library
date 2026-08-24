@@ -66,6 +66,10 @@ project endpoints and aliases; no credentials or endpoints are committed.
 - The agent API does not expose a usable ETag/CAS precondition for selector updates.
   Therefore only the serialized pipeline identity should hold agent version/endpoint
   update permission; human and other automation principals must not bypass that lock.
+- Selector rollback restores prior behavior for new stable-endpoint requests. Existing
+  conversations remain durable and continue, but the service can retain version affinity
+  for that conversation; the record captures the observed conversation release rather
+  than falsely claiming that persisted state was re-executed under the prior version.
 - If any post-promotion smoke, Toolbox, endpoint, or audit-persistence step fails, the
   pipeline compensates by restoring the prior selector and verifies prior behavior.
 
@@ -78,7 +82,8 @@ Verified on three isolated projects under one Foundry resource:
   `candidate` after the explicit version-2 selector update, and rollback returned it to
   `approved` on version 1;
 - the same stable-endpoint conversation was continued after rollback, with its prior
-  items and metadata still present.
+  items and metadata still present; its observed version affinity is recorded separately
+  from the stateless rollback smoke.
 
 The release/evaluation/rollback records are runtime evidence and are not committed because
 they contain live resource URLs and identifiers.
