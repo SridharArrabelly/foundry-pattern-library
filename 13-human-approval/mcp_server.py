@@ -19,7 +19,8 @@ DB_PATH = os.environ.get(
     "APPROVAL_DB_PATH",
     str(Path(tempfile.gettempdir()) / "foundry-pattern-13.sqlite3"),
 )
-API_KEY = os.environ.get("MCP_API_KEY", "")
+TOOL_API_KEY = os.environ.get("MCP_TOOL_API_KEY", "")
+OPERATOR_API_KEY = os.environ.get("MCP_OPERATOR_API_KEY", "")
 ALLOW_INSECURE_LOCAL = os.environ.get("MCP_ALLOW_INSECURE_LOCAL", "").lower() in {
     "1",
     "true",
@@ -48,11 +49,17 @@ def get_change_request(change_request_id: str) -> str:
 
 
 @mcp.tool()
-def schedule_change(change_request_id: str, scheduled_for: str, reason: str) -> str:
+def schedule_change(
+    change_request_id: str,
+    pending_approval_id: str,
+    scheduled_for: str,
+    reason: str,
+) -> str:
     """Schedule an approved change. Foundry must require approval for every call."""
     result = store.schedule_change(
         {
             "change_request_id": change_request_id,
+            "pending_approval_id": pending_approval_id,
             "scheduled_for": scheduled_for,
             "reason": reason,
         }
@@ -65,6 +72,23 @@ async def health(_: Request) -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
 
+@mcp.custom_route("/pending-approvals", methods=["POST"])
+async def register_pending(request: Request) -> JSONResponse:
+    try:
+        payload = await request.json()
+        result = store.register_pending(payload)
+        return JSONResponse(
+            {
+                "pending_approval_id": result.pending_approval_id,
+                "approval_request_id": result.approval_request_id,
+                "change_request_id": result.request_id,
+                "duplicate": result.duplicate,
+            }
+        )
+    except (ApprovalError, ValueError, TypeError) as error:
+        return JSONResponse({"error": str(error)}, status_code=409)
+
+
 @mcp.custom_route("/decisions", methods=["POST"])
 async def record_decision(request: Request) -> JSONResponse:
     try:
@@ -73,6 +97,7 @@ async def record_decision(request: Request) -> JSONResponse:
         return JSONResponse(
             {
                 "decision_id": result.decision_id,
+                "pending_approval_id": result.pending_approval_id,
                 "approval_request_id": result.approval_request_id,
                 "change_request_id": result.request_id,
                 "approve": result.approve,
@@ -91,6 +116,16 @@ async def audit(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(error)}, status_code=404)
 
 
+def is_authorized(path: str, headers) -> bool:
+    if path.startswith("/mcp"):
+        supplied = headers.get("x-mcp-api-key", "")
+        return bool(TOOL_API_KEY) and hmac.compare_digest(supplied, TOOL_API_KEY)
+    supplied = headers.get("x-operator-api-key", "")
+    return bool(OPERATOR_API_KEY) and hmac.compare_digest(
+        supplied, OPERATOR_API_KEY
+    )
+
+
 class ApiKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path == "/health":
@@ -100,8 +135,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             "::1",
         }:
             return await call_next(request)
-        supplied = request.headers.get("x-mcp-api-key", "")
-        if not API_KEY or not hmac.compare_digest(supplied, API_KEY):
+        if not is_authorized(request.url.path, request.headers):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         return await call_next(request)
 
@@ -111,11 +145,16 @@ app.add_middleware(ApiKeyMiddleware)
 
 
 def main() -> None:
-    if not API_KEY and not ALLOW_INSECURE_LOCAL:
+    if (not TOOL_API_KEY or not OPERATOR_API_KEY) and not ALLOW_INSECURE_LOCAL:
         raise SystemExit(
-            "Set MCP_API_KEY. For loopback-only development, explicitly set "
+            "Set distinct MCP_TOOL_API_KEY and MCP_OPERATOR_API_KEY values. "
+            "For loopback-only development, explicitly set "
             "MCP_ALLOW_INSECURE_LOCAL=true."
         )
+    if TOOL_API_KEY and OPERATOR_API_KEY and hmac.compare_digest(
+        TOOL_API_KEY, OPERATOR_API_KEY
+    ):
+        raise SystemExit("MCP tool and operator credentials must be different.")
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))

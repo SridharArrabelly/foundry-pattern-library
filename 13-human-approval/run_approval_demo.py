@@ -35,7 +35,8 @@ from approval_store import (
 AGENT_NAME = "consequential-change-approval"
 CONNECTION_NAME = env("MCP_CHANGE_CONTROL_CONNECTION_NAME")
 MCP_SERVER_URL = env("MCP_CHANGE_CONTROL_URL")
-MCP_API_KEY = env("MCP_CHANGE_CONTROL_API_KEY")
+MCP_TOOL_API_KEY = env("MCP_CHANGE_CONTROL_TOOL_API_KEY")
+MCP_OPERATOR_API_KEY = env("MCP_CHANGE_CONTROL_OPERATOR_API_KEY")
 
 
 def require_remote_url(url: str | None) -> str:
@@ -106,25 +107,55 @@ def decision_envelope(item, arguments: dict[str, str], approve: bool) -> dict:
     )
     return {
         **response.model_dump(mode="json"),
+        "pending_approval_id": arguments["pending_approval_id"],
         "server_label": item.server_label,
         "tool_name": item.name,
         "arguments": arguments,
     }
 
 
-def api_headers() -> dict[str, str]:
-    if not MCP_API_KEY:
+def operator_headers() -> dict[str, str]:
+    if not MCP_OPERATOR_API_KEY:
         raise SystemExit(
-            "Set MCP_CHANGE_CONTROL_API_KEY for the operator audit channel. "
+            "Set MCP_CHANGE_CONTROL_OPERATOR_API_KEY for the operator channel. "
             "The value is not printed or persisted."
         )
-    return {"x-mcp-api-key": MCP_API_KEY}
+    return {"x-operator-api-key": MCP_OPERATOR_API_KEY}
+
+
+def tool_headers() -> dict[str, str]:
+    if not MCP_TOOL_API_KEY:
+        raise SystemExit(
+            "Set MCP_CHANGE_CONTROL_TOOL_API_KEY for the replay probe. "
+            "The Foundry project connection stores the same tool-only credential."
+        )
+    return {"x-mcp-api-key": MCP_TOOL_API_KEY}
+
+
+def register_pending(mcp_url: str, item, arguments: dict[str, str]) -> dict:
+    response = requests.post(
+        service_url(mcp_url, "/pending-approvals"),
+        headers=operator_headers(),
+        json={
+            "pending_approval_id": arguments["pending_approval_id"],
+            "approval_request_id": item.id,
+            "server_label": item.server_label,
+            "tool_name": item.name,
+            "arguments": arguments,
+        },
+        timeout=20,
+    )
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"pending approval registration failed closed: HTTP {response.status_code}"
+        )
+    return response.json()
 
 
 def record_decision(mcp_url: str, envelope: dict) -> dict:
     response = requests.post(
         service_url(mcp_url, "/decisions"),
-        headers=api_headers(),
+        headers=operator_headers(),
         json=envelope,
         timeout=20,
     )
@@ -136,7 +167,7 @@ def record_decision(mcp_url: str, envelope: dict) -> dict:
 def fetch_audit(mcp_url: str, request_id: str) -> dict:
     response = requests.get(
         service_url(mcp_url, f"/audit/{request_id}"),
-        headers=api_headers(),
+        headers=operator_headers(),
         timeout=20,
     )
     if response.status_code != 200:
@@ -145,7 +176,7 @@ def fetch_audit(mcp_url: str, request_id: str) -> dict:
 
 
 async def replay_tool_call(mcp_url: str, arguments: dict[str, str]) -> dict:
-    async with streamablehttp_client(mcp_url, headers=api_headers()) as (read, write, _):
+    async with streamablehttp_client(mcp_url, headers=tool_headers()) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             result = await session.call_tool(WRITE_TOOL, arguments)
@@ -228,6 +259,9 @@ def main() -> int:
         print(f"Foundry approval request: {approval.id}")
         print(f"Tool: {approval.server_label}/{approval.name}")
         print(f"Normalized arguments: {canonical}")
+        registered = register_pending(mcp_url, approval, arguments)
+        if registered["pending_approval_id"] != arguments["pending_approval_id"]:
+            raise RuntimeError("service registered a different pending approval nonce")
 
         choice = input("Type APPROVE or REJECT after reviewing the exact call: ").strip().upper()
         if choice not in {"APPROVE", "REJECT"}:

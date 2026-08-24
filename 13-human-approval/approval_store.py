@@ -11,15 +11,17 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import secrets
 import sqlite3
 import time
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 
 SERVER_LABEL = "change_control"
 READ_TOOL = "get_change_request"
 WRITE_TOOL = "schedule_change"
 DECISION_TTL_SECONDS = 300
+SCHEMA_VERSION = 2
 
 DEMO_REQUESTS = (
     (
@@ -68,7 +70,16 @@ class ReplayConflict(ApprovalError):
 
 
 @dataclass(frozen=True)
+class PendingResult:
+    pending_approval_id: str
+    approval_request_id: str
+    request_id: str
+    duplicate: bool
+
+
+@dataclass(frozen=True)
 class DecisionResult:
+    pending_approval_id: str
     decision_id: str
     approval_request_id: str
     request_id: str
@@ -96,7 +107,12 @@ def normalize_schedule_arguments(value: dict[str, Any] | str) -> tuple[dict[str,
             raise MalformedApproval("tool arguments are not valid JSON") from error
     if not isinstance(value, dict):
         raise MalformedApproval("tool arguments must be a JSON object")
-    required = {"change_request_id", "scheduled_for", "reason"}
+    required = {
+        "change_request_id",
+        "pending_approval_id",
+        "scheduled_for",
+        "reason",
+    }
     if set(value) != required:
         raise MalformedApproval(
             f"tool arguments must contain exactly {sorted(required)}"
@@ -107,15 +123,24 @@ def normalize_schedule_arguments(value: dict[str, Any] | str) -> tuple[dict[str,
         if not isinstance(item, str) or not item.strip():
             raise MalformedApproval(f"{key} must be a non-empty string")
         normalized[key] = item.strip()
+    if not normalized["pending_approval_id"].startswith("pending-"):
+        raise MalformedApproval("pending_approval_id is not server-issued")
     if not normalized["scheduled_for"].endswith("Z"):
         raise MalformedApproval("scheduled_for must be an ISO-8601 UTC timestamp ending in Z")
     return normalized, canonical_json(normalized)
 
 
 class ApprovalStore:
-    def __init__(self, path: str | Path, *, now=utc_now_epoch):
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        now: Callable[[], int] = utc_now_epoch,
+        nonce_factory: Callable[[], str] = lambda: secrets.token_urlsafe(24),
+    ):
         self.path = str(path)
         self.now = now
+        self.nonce_factory = nonce_factory
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
@@ -136,6 +161,25 @@ class ApprovalStore:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS schema_meta (version INTEGER NOT NULL)"
+            )
+            version_row = connection.execute(
+                "SELECT version FROM schema_meta LIMIT 1"
+            ).fetchone()
+            if version_row is None or version_row["version"] != SCHEMA_VERSION:
+                connection.executescript(
+                    """
+                    DROP TABLE IF EXISTS side_effects;
+                    DROP TABLE IF EXISTS decisions;
+                    DROP TABLE IF EXISTS pending_approvals;
+                    DROP TABLE IF EXISTS change_requests;
+                    DELETE FROM schema_meta;
+                    """
+                )
+                connection.execute(
+                    "INSERT INTO schema_meta(version) VALUES (?)", (SCHEMA_VERSION,)
+                )
             connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS change_requests (
@@ -148,9 +192,24 @@ class ApprovalStore:
                     created_at INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS pending_approvals (
+                    pending_approval_id TEXT PRIMARY KEY,
+                    request_id TEXT NOT NULL UNIQUE,
+                    server_label TEXT NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    canonical_arguments TEXT NOT NULL,
+                    approval_request_id TEXT UNIQUE,
+                    status TEXT NOT NULL CHECK (
+                        status IN ('issued', 'registered', 'approved', 'rejected', 'consumed')
+                    ),
+                    created_at INTEGER NOT NULL,
+                    expires_at INTEGER NOT NULL,
+                    FOREIGN KEY(request_id) REFERENCES change_requests(request_id)
+                );
                 CREATE TABLE IF NOT EXISTS decisions (
                     decision_id TEXT PRIMARY KEY,
                     approval_request_id TEXT NOT NULL UNIQUE,
+                    pending_approval_id TEXT NOT NULL UNIQUE,
                     request_id TEXT NOT NULL,
                     server_label TEXT NOT NULL,
                     tool_name TEXT NOT NULL,
@@ -159,36 +218,63 @@ class ApprovalStore:
                     reason TEXT,
                     decided_at INTEGER NOT NULL,
                     expires_at INTEGER NOT NULL,
-                    FOREIGN KEY(request_id) REFERENCES change_requests(request_id)
+                    FOREIGN KEY(request_id) REFERENCES change_requests(request_id),
+                    FOREIGN KEY(pending_approval_id)
+                        REFERENCES pending_approvals(pending_approval_id)
                 );
                 CREATE TABLE IF NOT EXISTS side_effects (
                     side_effect_id TEXT PRIMARY KEY,
                     request_id TEXT NOT NULL UNIQUE,
                     decision_id TEXT NOT NULL UNIQUE,
+                    pending_approval_id TEXT NOT NULL UNIQUE,
                     canonical_arguments TEXT NOT NULL,
                     scheduled_at INTEGER NOT NULL,
                     FOREIGN KEY(request_id) REFERENCES change_requests(request_id),
-                    FOREIGN KEY(decision_id) REFERENCES decisions(decision_id)
+                    FOREIGN KEY(decision_id) REFERENCES decisions(decision_id),
+                    FOREIGN KEY(pending_approval_id)
+                        REFERENCES pending_approvals(pending_approval_id)
                 );
                 """
             )
             now = self.now()
             for request_id, summary, scheduled_for, reason in DEMO_REQUESTS:
-                arguments, canonical = normalize_schedule_arguments(
+                if connection.execute(
+                    "SELECT 1 FROM change_requests WHERE request_id = ?", (request_id,)
+                ).fetchone():
+                    continue
+                pending_id = f"pending-{self.nonce_factory()}"
+                _, canonical = normalize_schedule_arguments(
                     {
                         "change_request_id": request_id,
+                        "pending_approval_id": pending_id,
                         "scheduled_for": scheduled_for,
                         "reason": reason,
                     }
                 )
-                del arguments
                 connection.execute(
                     """
-                    INSERT OR IGNORE INTO change_requests
+                    INSERT INTO change_requests
                         (request_id, summary, canonical_arguments, status, created_at, expires_at)
                     VALUES (?, ?, ?, 'open', ?, ?)
                     """,
                     (request_id, summary, canonical, now, now + 86_400),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO pending_approvals (
+                        pending_approval_id, request_id, server_label, tool_name,
+                        canonical_arguments, status, created_at, expires_at
+                    ) VALUES (?, ?, ?, ?, ?, 'issued', ?, ?)
+                    """,
+                    (
+                        pending_id,
+                        request_id,
+                        SERVER_LABEL,
+                        WRITE_TOOL,
+                        canonical,
+                        now,
+                        now + 86_400,
+                    ),
                 )
 
     def get_change_request(self, request_id: str) -> dict[str, Any]:
@@ -198,7 +284,9 @@ class ApprovalStore:
             ).fetchone()
             if row is None:
                 raise ApprovalError(f"unknown change request: {request_id}")
-            arguments = json.loads(row["canonical_arguments"])
+            pending = connection.execute(
+                "SELECT status FROM pending_approvals WHERE request_id = ?", (request_id,)
+            ).fetchone()
             side_effect = connection.execute(
                 "SELECT side_effect_id FROM side_effects WHERE request_id = ?", (request_id,)
             ).fetchone()
@@ -208,15 +296,88 @@ class ApprovalStore:
                 "status": row["status"],
                 "expires_at": iso_time(row["expires_at"]),
                 "schedule_tool": WRITE_TOOL,
-                "schedule_arguments": arguments,
+                "schedule_arguments": json.loads(row["canonical_arguments"]),
+                "pending_approval_status": pending["status"],
                 "side_effect_id": side_effect["side_effect_id"] if side_effect else None,
             }
+
+    def register_pending(self, payload: dict[str, Any]) -> PendingResult:
+        required = {
+            "pending_approval_id",
+            "approval_request_id",
+            "server_label",
+            "tool_name",
+            "arguments",
+        }
+        if not isinstance(payload, dict) or set(payload) != required:
+            raise MalformedApproval(
+                f"pending registration must contain exactly {sorted(required)}"
+            )
+        for field in required - {"arguments"}:
+            if not isinstance(payload[field], str) or not payload[field].strip():
+                raise MalformedApproval(f"{field} must be a non-empty string")
+        arguments, canonical = normalize_schedule_arguments(payload["arguments"])
+        if arguments["pending_approval_id"] != payload["pending_approval_id"]:
+            raise MismatchedApproval("pending approval ID does not match tool arguments")
+        if payload["server_label"] != SERVER_LABEL or payload["tool_name"] != WRITE_TOOL:
+            raise MismatchedApproval("pending approval targets a different MCP tool")
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            now = self.now()
+            pending = connection.execute(
+                "SELECT * FROM pending_approvals WHERE pending_approval_id = ?",
+                (payload["pending_approval_id"],),
+            ).fetchone()
+            if pending is None:
+                raise MissingApproval("pending approval ID was not issued by this service")
+            if now > pending["expires_at"]:
+                raise StaleApproval("pending approval expired before registration")
+            exact = (
+                pending["server_label"] == payload["server_label"]
+                and pending["tool_name"] == payload["tool_name"]
+                and pending["canonical_arguments"] == canonical
+            )
+            if not exact:
+                raise MismatchedApproval(
+                    "pending approval is not bound to these exact tool arguments"
+                )
+            if pending["approval_request_id"] is not None:
+                if pending["approval_request_id"] != payload["approval_request_id"]:
+                    raise ReplayConflict(
+                        "pending approval is already bound to another Foundry request"
+                    )
+                return PendingResult(
+                    pending_approval_id=pending["pending_approval_id"],
+                    approval_request_id=pending["approval_request_id"],
+                    request_id=pending["request_id"],
+                    duplicate=True,
+                )
+            if pending["status"] != "issued":
+                raise ReplayConflict(
+                    f"pending approval is {pending['status']}, not available for registration"
+                )
+            connection.execute(
+                """
+                UPDATE pending_approvals
+                SET approval_request_id = ?, status = 'registered'
+                WHERE pending_approval_id = ?
+                """,
+                (payload["approval_request_id"], payload["pending_approval_id"]),
+            )
+            return PendingResult(
+                pending_approval_id=pending["pending_approval_id"],
+                approval_request_id=payload["approval_request_id"],
+                request_id=pending["request_id"],
+                duplicate=False,
+            )
 
     def _validate_envelope(self, envelope: dict[str, Any]) -> tuple[dict[str, str], str]:
         required = {
             "type",
             "id",
             "approval_request_id",
+            "pending_approval_id",
             "approve",
             "reason",
             "server_label",
@@ -229,7 +390,13 @@ class ApprovalStore:
             )
         if envelope["type"] != "mcp_approval_response":
             raise MalformedApproval("approval response type must be mcp_approval_response")
-        for field in ("id", "approval_request_id", "server_label", "tool_name"):
+        for field in (
+            "id",
+            "approval_request_id",
+            "pending_approval_id",
+            "server_label",
+            "tool_name",
+        ):
             if not isinstance(envelope[field], str) or not envelope[field].strip():
                 raise MalformedApproval(f"{field} must be a non-empty string")
         if type(envelope["approve"]) is not bool:
@@ -240,25 +407,35 @@ class ApprovalStore:
             raise MismatchedApproval("approval server_label does not match this MCP server")
         if envelope["tool_name"] != WRITE_TOOL:
             raise MismatchedApproval("approval is not for schedule_change")
-        return normalize_schedule_arguments(envelope["arguments"])
+        arguments, canonical = normalize_schedule_arguments(envelope["arguments"])
+        if arguments["pending_approval_id"] != envelope["pending_approval_id"]:
+            raise MismatchedApproval("approval nonce does not match tool arguments")
+        return arguments, canonical
 
     def record_decision(self, envelope: dict[str, Any]) -> DecisionResult:
         arguments, canonical = self._validate_envelope(envelope)
         request_id = arguments["change_request_id"]
-        now = self.now()
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            request = connection.execute(
-                "SELECT * FROM change_requests WHERE request_id = ?", (request_id,)
+            now = self.now()
+            pending = connection.execute(
+                "SELECT * FROM pending_approvals WHERE pending_approval_id = ?",
+                (envelope["pending_approval_id"],),
             ).fetchone()
-            if request is None:
-                raise MismatchedApproval("approval references an unknown change request")
-            if canonical != request["canonical_arguments"]:
+            if pending is None:
+                raise MissingApproval("approval nonce was not issued by this service")
+            if (
+                pending["request_id"] != request_id
+                or pending["approval_request_id"] != envelope["approval_request_id"]
+                or pending["server_label"] != envelope["server_label"]
+                or pending["tool_name"] != envelope["tool_name"]
+                or pending["canonical_arguments"] != canonical
+            ):
                 raise MismatchedApproval(
-                    "approval arguments do not exactly match the reviewed change request"
+                    "decision does not match the registered pending approval"
                 )
-            if now > request["expires_at"]:
-                raise StaleApproval("change request expired before the decision was recorded")
+            if now > pending["expires_at"]:
+                raise StaleApproval("pending approval expired before the decision")
 
             by_decision = connection.execute(
                 "SELECT * FROM decisions WHERE decision_id = ?", (envelope["id"],)
@@ -272,6 +449,7 @@ class ApprovalStore:
                 same = (
                     existing["decision_id"] == envelope["id"]
                     and existing["approval_request_id"] == envelope["approval_request_id"]
+                    and existing["pending_approval_id"] == envelope["pending_approval_id"]
                     and existing["request_id"] == request_id
                     and existing["canonical_arguments"] == canonical
                     and bool(existing["approve"]) is envelope["approve"]
@@ -281,6 +459,7 @@ class ApprovalStore:
                         "decision or approval-request ID was replayed with different content"
                     )
                 return DecisionResult(
+                    pending_approval_id=existing["pending_approval_id"],
                     decision_id=existing["decision_id"],
                     approval_request_id=existing["approval_request_id"],
                     request_id=existing["request_id"],
@@ -288,21 +467,34 @@ class ApprovalStore:
                     duplicate=True,
                 )
 
+            if pending["status"] != "registered":
+                raise ReplayConflict(
+                    f"pending approval is {pending['status']}, not awaiting a decision"
+                )
+            request = connection.execute(
+                "SELECT * FROM change_requests WHERE request_id = ?", (request_id,)
+            ).fetchone()
+            if request is None or request["canonical_arguments"] != canonical:
+                raise MismatchedApproval(
+                    "approval arguments do not exactly match the reviewed change request"
+                )
             if request["status"] != "open":
                 raise ReplayConflict(
                     f"change request is already {request['status']}; a new decision is not allowed"
                 )
-            decision_expires = min(request["expires_at"], now + DECISION_TTL_SECONDS)
+            decision_expires = min(pending["expires_at"], now + DECISION_TTL_SECONDS)
             connection.execute(
                 """
                 INSERT INTO decisions (
-                    decision_id, approval_request_id, request_id, server_label, tool_name,
-                    canonical_arguments, approve, reason, decided_at, expires_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    decision_id, approval_request_id, pending_approval_id, request_id,
+                    server_label, tool_name, canonical_arguments, approve, reason,
+                    decided_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     envelope["id"],
                     envelope["approval_request_id"],
+                    envelope["pending_approval_id"],
                     request_id,
                     envelope["server_label"],
                     envelope["tool_name"],
@@ -313,11 +505,17 @@ class ApprovalStore:
                     decision_expires,
                 ),
             )
+            status = "approved" if envelope["approve"] else "rejected"
+            connection.execute(
+                "UPDATE pending_approvals SET status = ? WHERE pending_approval_id = ?",
+                (status, envelope["pending_approval_id"]),
+            )
             connection.execute(
                 "UPDATE change_requests SET status = ? WHERE request_id = ?",
-                ("approved" if envelope["approve"] else "rejected", request_id),
+                (status, request_id),
             )
             return DecisionResult(
+                pending_approval_id=envelope["pending_approval_id"],
                 decision_id=envelope["id"],
                 approval_request_id=envelope["approval_request_id"],
                 request_id=request_id,
@@ -328,21 +526,37 @@ class ApprovalStore:
     def schedule_change(self, arguments: dict[str, Any]) -> dict[str, Any]:
         normalized, canonical = normalize_schedule_arguments(arguments)
         request_id = normalized["change_request_id"]
-        now = self.now()
+        pending_id = normalized["pending_approval_id"]
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            now = self.now()
             request = connection.execute(
                 "SELECT * FROM change_requests WHERE request_id = ?", (request_id,)
             ).fetchone()
-            if request is None or canonical != request["canonical_arguments"]:
+            pending = connection.execute(
+                "SELECT * FROM pending_approvals WHERE pending_approval_id = ?",
+                (pending_id,),
+            ).fetchone()
+            if (
+                request is None
+                or pending is None
+                or pending["request_id"] != request_id
+                or canonical != request["canonical_arguments"]
+                or canonical != pending["canonical_arguments"]
+            ):
                 raise MismatchedApproval(
-                    "schedule arguments do not exactly match the reviewed change request"
+                    "schedule arguments do not exactly match the server-issued approval"
                 )
 
             existing = connection.execute(
                 "SELECT * FROM side_effects WHERE request_id = ?", (request_id,)
             ).fetchone()
             if existing is not None:
+                if (
+                    existing["pending_approval_id"] != pending_id
+                    or existing["canonical_arguments"] != canonical
+                ):
+                    raise ReplayConflict("an approval nonce cannot authorize another effect")
                 return {
                     "status": "already_scheduled",
                     "change_request_id": request_id,
@@ -351,18 +565,21 @@ class ApprovalStore:
                     "idempotent_replay": True,
                 }
 
+            if pending["status"] != "approved":
+                raise MissingApproval(
+                    "no approved, registered server nonce authorizes this call"
+                )
             decision = connection.execute(
                 """
                 SELECT * FROM decisions
-                WHERE request_id = ? AND canonical_arguments = ? AND approve = 1
-                ORDER BY decided_at DESC
-                LIMIT 1
+                WHERE pending_approval_id = ? AND request_id = ?
+                    AND canonical_arguments = ? AND approve = 1
                 """,
-                (request_id, canonical),
+                (pending_id, request_id, canonical),
             ).fetchone()
             if decision is None:
                 raise MissingApproval(
-                    "no recorded approval authorizes this exact schedule_change call"
+                    "no operator decision authorizes this exact schedule_change call"
                 )
             if now > decision["expires_at"]:
                 raise StaleApproval("approval expired before schedule_change executed")
@@ -372,16 +589,28 @@ class ApprovalStore:
                 )
 
             digest = hashlib.sha256(
-                f"{request_id}:{decision['decision_id']}:{canonical}".encode("utf-8")
+                f"{request_id}:{pending_id}:{decision['decision_id']}:{canonical}".encode()
             ).hexdigest()[:20]
             side_effect_id = f"effect-{digest}"
             connection.execute(
                 """
                 INSERT INTO side_effects (
-                    side_effect_id, request_id, decision_id, canonical_arguments, scheduled_at
-                ) VALUES (?, ?, ?, ?, ?)
+                    side_effect_id, request_id, decision_id, pending_approval_id,
+                    canonical_arguments, scheduled_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (side_effect_id, request_id, decision["decision_id"], canonical, now),
+                (
+                    side_effect_id,
+                    request_id,
+                    decision["decision_id"],
+                    pending_id,
+                    canonical,
+                    now,
+                ),
+            )
+            connection.execute(
+                "UPDATE pending_approvals SET status = 'consumed' WHERE pending_approval_id = ?",
+                (pending_id,),
             )
             connection.execute(
                 "UPDATE change_requests SET status = 'scheduled' WHERE request_id = ?",
@@ -390,6 +619,7 @@ class ApprovalStore:
             return {
                 "status": "scheduled",
                 "change_request_id": request_id,
+                "pending_approval_id": pending_id,
                 "approval_request_id": decision["approval_request_id"],
                 "decision_id": decision["decision_id"],
                 "side_effect_id": side_effect_id,
@@ -403,16 +633,24 @@ class ApprovalStore:
             ).fetchone()
             if request is None:
                 raise ApprovalError(f"unknown change request: {request_id}")
+            pending = connection.execute(
+                """
+                SELECT pending_approval_id, approval_request_id, status
+                FROM pending_approvals WHERE request_id = ?
+                """,
+                (request_id,),
+            ).fetchone()
             decisions = connection.execute(
                 """
-                SELECT decision_id, approval_request_id, approve, tool_name, decided_at
+                SELECT decision_id, approval_request_id, pending_approval_id, approve,
+                       tool_name, decided_at
                 FROM decisions WHERE request_id = ? ORDER BY decided_at
                 """,
                 (request_id,),
             ).fetchall()
             effects = connection.execute(
                 """
-                SELECT side_effect_id, decision_id, scheduled_at
+                SELECT side_effect_id, decision_id, pending_approval_id, scheduled_at
                 FROM side_effects WHERE request_id = ? ORDER BY scheduled_at
                 """,
                 (request_id,),
@@ -420,10 +658,16 @@ class ApprovalStore:
             return {
                 "change_request_id": request_id,
                 "status": request["status"],
+                "pending_approval": {
+                    "pending_approval_id": pending["pending_approval_id"],
+                    "approval_request_id": pending["approval_request_id"],
+                    "status": pending["status"],
+                },
                 "decisions": [
                     {
                         "decision_id": row["decision_id"],
                         "approval_request_id": row["approval_request_id"],
+                        "pending_approval_id": row["pending_approval_id"],
                         "approve": bool(row["approve"]),
                         "tool_name": row["tool_name"],
                         "decided_at": iso_time(row["decided_at"]),
@@ -434,6 +678,7 @@ class ApprovalStore:
                     {
                         "side_effect_id": row["side_effect_id"],
                         "decision_id": row["decision_id"],
+                        "pending_approval_id": row["pending_approval_id"],
                         "scheduled_at": iso_time(row["scheduled_at"]),
                     }
                     for row in effects

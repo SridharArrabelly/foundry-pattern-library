@@ -7,9 +7,16 @@ param location string = resourceGroup().location
 @description('Fully qualified image already pushed to an Azure Container Registry.')
 param containerImage string
 
+@description('Existing Azure Container Registry name in this resource group.')
+param containerRegistryName string
+
 @secure()
-@description('Shared key stored as a Container Apps secret and a Foundry project connection secret.')
-param mcpApiKey string
+@description('Tool-only key stored in the Container App and Foundry project connection.')
+param mcpToolApiKey string
+
+@secure()
+@description('Separate operator key for pending registrations, decisions, and audit reads.')
+param mcpOperatorApiKey string
 
 @description('Minimum replicas. Keep at zero for scale-to-zero demo economics.')
 param minReplicas int = 0
@@ -20,6 +27,29 @@ param maxReplicas int = 1
 var compact = toLower(replace(name, '-', ''))
 var storageName = take('${compact}${uniqueString(resourceGroup().id)}', 24)
 var shareName = 'changecontrol'
+var acrPullRoleDefinitionId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+
+resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+  name: containerRegistryName
+}
+
+resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: '${name}-pull'
+  location: location
+}
+
+resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(registry.id, pullIdentity.id, acrPullRoleDefinitionId)
+  scope: registry
+  properties: {
+    principalId: pullIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      acrPullRoleDefinitionId
+    )
+  }
+}
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageName
@@ -71,12 +101,21 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${pullIdentity.id}': {}
+    }
   }
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
       activeRevisionsMode: 'Single'
+      registries: [
+        {
+          server: registry.properties.loginServer
+          identity: pullIdentity.id
+        }
+      ]
       ingress: {
         external: true
         targetPort: 8080
@@ -85,8 +124,12 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       }
       secrets: [
         {
-          name: 'mcp-api-key'
-          value: mcpApiKey
+          name: 'mcp-tool-api-key'
+          value: mcpToolApiKey
+        }
+        {
+          name: 'mcp-operator-api-key'
+          value: mcpOperatorApiKey
         }
       ]
     }
@@ -97,8 +140,12 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           image: containerImage
           env: [
             {
-              name: 'MCP_API_KEY'
-              secretRef: 'mcp-api-key'
+              name: 'MCP_TOOL_API_KEY'
+              secretRef: 'mcp-tool-api-key'
+            }
+            {
+              name: 'MCP_OPERATOR_API_KEY'
+              secretRef: 'mcp-operator-api-key'
             }
             {
               name: 'APPROVAL_DB_PATH'
@@ -142,6 +189,9 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       ]
     }
   }
+  dependsOn: [
+    acrPull
+  ]
 }
 
 output mcpUrl string = 'https://${app.properties.configuration.ingress.fqdn}/mcp'

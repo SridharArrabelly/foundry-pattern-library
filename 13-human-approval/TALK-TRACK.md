@@ -23,8 +23,10 @@
   `McpApprovalResponse`.
 - **Two-tool MCP service** — read-only `get_change_request`; consequential
   `schedule_change`.
-- **Fail-closed state machine** — malformed, missing, stale or mismatched approvals fail;
-  duplicate decision/approval IDs cannot be changed on replay.
+- **Fail-closed state machine** — each reviewed request already contains a server-issued,
+  one-time opaque approval nonce. The operator channel binds it to the exact Foundry
+  approval-request ID, tool name and normalized arguments before a decision is accepted.
+  Invented, missing, stale or mismatched approvals fail.
 - **Exactly-once effect** — request, Foundry approval-request, operator decision and
   deterministic side-effect IDs are retained in one audit view.
 - **Remote deployment** — Azure Container Apps with HTTPS ingress, scale-to-zero,
@@ -50,10 +52,12 @@ local tests validate the service and state machine but are not presented as clou
 approval evidence.
 
 ## Security and correctness boundaries
-- The project connection, not the agent definition, holds the MCP credential.
-- The service never prints or persists bearer tokens or the MCP key.
+- The project connection holds a **tool-only** credential. A separate operator credential
+  protects pending-registration, decision and audit routes; the two values must differ.
+- The service never prints or persists bearer tokens or either credential.
 - A human approves the exact normalized call, not a natural-language summary.
-- An approval expires after five minutes and authorizes only exact reviewed arguments.
+- A server-issued nonce is bound to one request and exact arguments, then consumed once.
+  The operator decision expires after five minutes.
 - The MCP key is downstream authentication. Production authorization should also check
   workload identity, tenant, change ownership and policy in the system of record.
 - The SQLite store and single-replica limit are for deterministic demonstration only.
