@@ -58,7 +58,8 @@ def project_client():
     if not PROJECT_ENDPOINT:
         raise SystemExit("Set PROJECT_ENDPOINT in .env")
     return AIProjectClient(
-        endpoint=PROJECT_ENDPOINT, credential=DefaultAzureCredential()
+        endpoint=PROJECT_ENDPOINT,
+        credential=DefaultAzureCredential(process_timeout=30),
     )
 
 

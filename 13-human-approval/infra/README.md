@@ -1,8 +1,15 @@
 # Remote MCP deployment
 
-A Foundry prompt agent cannot call `localhost`. This deployment creates the smallest
-durable demo shape: an external HTTPS Azure Container App, scale-to-zero, one replica
-maximum, and an Azure Files mount for the SQLite database. SQLite remains **demo-only**.
+A Foundry prompt agent cannot call `localhost`. The default deployment creates the
+smallest remote demo shape: an external HTTPS Azure Container App with exactly one
+replica and ephemeral SQLite state. SQLite remains **demo-only** and a container restart
+resets the demo data.
+
+An optional Azure Files-backed SQLite volume is available with
+`useAzureFiles=true`, but Container Apps mounts Azure Files with the storage account key.
+Many enterprise policies (correctly) disable shared-key access. Don't weaken those policies
+for this demo; use the default ephemeral mode or adapt the service to your approved durable
+workflow store.
 
 ## Deploy
 
@@ -26,6 +33,7 @@ az deployment group create `
   --parameters containerImage="${acr}.azurecr.io/foundry-change-control:v1" `
                containerRegistryName=$acr `
                containerRegistryAuthorizationMode=$roleMode `
+               useAzureFiles=false `
                mcpToolApiKey=$env:MCP_TOOL_API_KEY `
                mcpOperatorApiKey=$env:MCP_OPERATOR_API_KEY
 ```
@@ -59,11 +67,11 @@ uv run python 13-human-approval/run_approval_demo.py --change-request CRQ-1003
 
 ## Cost and cleanup
 
-Container Apps compute scales to zero, but Azure Files, the managed environment, log
-ingestion (if enabled), and the registry can still incur charges. The demo deliberately
-caps the app at one replica because SQLite has one writer. Remove the resource group
-after the demo, or delete the Container App, managed environment, storage account and
-test image individually if the group is shared.
+The default ephemeral deployment holds one replica so SQLite state survives between demo
+calls; compute, the managed environment, log ingestion (if enabled), and the registry can
+incur charges. The app is capped at one replica because SQLite has one writer. If an
+approved Azure Files configuration is used, `minReplicas=0` can preserve the file while
+compute scales to zero. Remove the dedicated resource group after the demo.
 
 ```powershell
 az group delete --name <dedicated-demo-resource-group> --yes --no-wait

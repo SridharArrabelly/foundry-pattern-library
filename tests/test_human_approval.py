@@ -97,13 +97,38 @@ class HumanApprovalTests(unittest.TestCase):
         return self.store.record_decision(self.envelope(request_id=request_id))
 
     def test_selective_policy_never_approves_read_and_always_approves_write(self):
-        tool = dict(demo_module.approval_tool("connection-id"))
+        tool = dict(
+            demo_module.approval_tool(
+                "connection-id",
+                "https://example.test/mcp",
+            )
+        )
+        self.assertEqual(tool["server_url"], "https://example.test/mcp")
         self.assertEqual(
             tool["require_approval"]["never"]["tool_names"], ["get_change_request"]
         )
         self.assertEqual(
             tool["require_approval"]["always"]["tool_names"], ["schedule_change"]
         )
+
+    def test_foundry_approval_payload_omits_local_audit_decision_id(self):
+        item = SimpleNamespace(
+            id="mcpr-request",
+            server_label=store_module.SERVER_LABEL,
+            name=store_module.WRITE_TOOL,
+        )
+        envelope = demo_module.decision_envelope(item, self.arguments(), True)
+        self.assertTrue(envelope["id"].startswith("decision-"))
+        response = demo_module.foundry_approval_response(envelope)
+        self.assertNotIn("id", response)
+        self.assertNotIn("reason", response)
+        self.assertEqual(response["approval_request_id"], "mcpr-request")
+        self.assertTrue(response["approve"])
+        rejected = demo_module.foundry_approval_response(
+            demo_module.decision_envelope(item, self.arguments(), False)
+        )
+        self.assertIn("reason", rejected)
+        self.assertFalse(rejected["approve"])
 
     def test_demo_windows_are_generated_in_the_future(self):
         for request_id in ("CRQ-1001", "CRQ-1002", "CRQ-1003"):

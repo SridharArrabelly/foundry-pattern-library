@@ -29,8 +29,9 @@
   Invented, missing, stale or mismatched approvals fail.
 - **Exactly-once effect** — request, Foundry approval-request, operator decision and
   deterministic side-effect IDs are retained in one audit view.
-- **Remote deployment** — Azure Container Apps with HTTPS ingress, scale-to-zero,
-  one replica and Azure Files. SQLite is explicitly demo-only.
+- **Remote deployment** — Azure Container Apps with HTTPS ingress and one ephemeral
+  SQLite replica by default. Azure Files is an explicit opt-in only where shared-key
+  mounts are permitted; SQLite is demo-only in either mode.
 
 ## Running it
 1. Deploy the service using [`infra/README.md`](infra/README.md), then create a Foundry
@@ -48,9 +49,19 @@
 5. Run local negative-path tests:
    `uv run python -m unittest discover -s tests -p "test_human_approval.py" -v`.
 
-The main demo has no auto-approve flag. A Foundry prompt agent cannot call localhost;
-local tests validate the service and state machine but are not presented as cloud
-approval evidence.
+The main demo has no auto-approve flag. A Foundry prompt agent cannot call localhost,
+so the live path uses the remote Container App and a Foundry project connection; local
+tests remain the negative-path safety net.
+
+## Live verification (2026-08-24)
+- The remote Container App exposed MCP over HTTPS; the Foundry connection held only the
+  tool credential. Tool credentials received 401 on operator routes, and operator
+  credentials received 401 on MCP.
+- The read-only tool completed without an approval request.
+- A rejected `schedule_change` produced zero side effects.
+- An approved call paused on a real Foundry `mcp_approval_request`, then produced one
+  correlated side effect after the operator response.
+- Replaying the same approved call returned the same side-effect ID; the count remained one.
 
 ## Security and correctness boundaries
 - The project connection holds a **tool-only** credential. A separate operator credential

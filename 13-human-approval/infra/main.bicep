@@ -25,11 +25,14 @@ param mcpToolApiKey string
 @description('Separate operator key for pending registrations, decisions, and audit reads.')
 param mcpOperatorApiKey string
 
-@description('Minimum replicas. Keep at zero for scale-to-zero demo economics.')
-param minReplicas int = 0
+@description('Minimum replicas. Keep at one for the default ephemeral SQLite demo so state survives between calls.')
+param minReplicas int = 1
 
 @description('Maximum replicas. SQLite requires one writer for this demo.')
 param maxReplicas int = 1
+
+@description('Opt in to an Azure Files-backed SQLite volume. This requires a storage account that permits shared-key access; many enterprise policies disable it.')
+param useAzureFiles bool = false
 
 var compact = toLower(replace(name, '-', ''))
 var storageName = take('${compact}${uniqueString(resourceGroup().id)}', 24)
@@ -62,7 +65,7 @@ resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = if (useAzureFiles) {
   name: storageName
   location: location
   sku: {
@@ -70,18 +73,20 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
   kind: 'StorageV2'
   properties: {
+    allowSharedKeyAccess: true
     allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
+    publicNetworkAccess: 'Enabled'
     supportsHttpsTrafficOnly: true
   }
 }
 
-resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = {
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = if (useAzureFiles) {
   parent: storage
   name: 'default'
 }
 
-resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = {
+resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = if (useAzureFiles) {
   parent: fileService
   name: shareName
   properties: {
@@ -93,16 +98,17 @@ resource share 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${name}-env'
   location: location
+  properties: {}
 }
 
-resource environmentStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+resource environmentStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if (useAzureFiles) {
   parent: environment
   name: 'sqlite'
   properties: {
     azureFile: {
-      accountName: storage.name
-      accountKey: storage.listKeys().keys[0].value
-      shareName: share.name
+      accountName: storage!.name
+      accountKey: storage!.listKeys().keys[0].value
+      shareName: share!.name
       accessMode: 'ReadWrite'
     }
   }
@@ -160,19 +166,23 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'APPROVAL_DB_PATH'
-              value: '/data/change-control.sqlite3'
+              value: useAzureFiles
+                ? '/data/change-control.sqlite3'
+                : '/tmp/change-control.sqlite3'
             }
           ]
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
           }
-          volumeMounts: [
-            {
-              volumeName: 'sqlite'
-              mountPath: '/data'
-            }
-          ]
+          volumeMounts: useAzureFiles
+            ? [
+                {
+                  volumeName: 'sqlite'
+                  mountPath: '/data'
+                }
+              ]
+            : []
           probes: [
             {
               type: 'Liveness'
@@ -191,13 +201,15 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         minReplicas: minReplicas
         maxReplicas: maxReplicas
       }
-      volumes: [
-        {
-          name: 'sqlite'
-          storageType: 'AzureFile'
-          storageName: environmentStorage.name
-        }
-      ]
+      volumes: useAzureFiles
+        ? [
+            {
+              name: 'sqlite'
+              storageType: 'AzureFile'
+              storageName: environmentStorage!.name
+            }
+          ]
+        : []
     }
   }
   dependsOn: [
@@ -207,7 +219,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
 
 output mcpUrl string = 'https://${app.properties.configuration.ingress.fqdn}/mcp'
 output containerAppName string = app.name
-output storageAccountName string = storage.name
+output storageAccountName string = useAzureFiles ? storage!.name : ''
 output requiredRegistryRole string = containerRegistryAuthorizationMode == 'rbac-abac'
   ? 'Container Registry Repository Reader'
   : 'AcrPull'

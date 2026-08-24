@@ -56,9 +56,10 @@ def service_url(mcp_url: str, suffix: str) -> str:
     return urlunsplit((parsed.scheme, parsed.netloc, f"{path}{suffix}", "", ""))
 
 
-def approval_tool(connection_id: str) -> MCPTool:
+def approval_tool(connection_id: str, server_url: str) -> MCPTool:
     return MCPTool(
         server_label=SERVER_LABEL,
+        server_url=server_url,
         project_connection_id=connection_id,
         allowed_tools=["get_change_request", WRITE_TOOL],
         require_approval={
@@ -112,6 +113,22 @@ def decision_envelope(item, arguments: dict[str, str], approve: bool) -> dict:
         "tool_name": item.name,
         "arguments": arguments,
     }
+
+
+def foundry_approval_response(envelope: dict) -> dict:
+    """Return only the fields accepted by the Responses approval input.
+
+    The local decision ID is audit metadata, not a Foundry response-item ID. If
+    an `id` is supplied to Foundry it must be a service-issued `mcpa...` value,
+    so this client deliberately omits its own `decision-...` ID.
+    """
+    response = {
+        key: envelope[key]
+        for key in ("type", "approval_request_id", "approve")
+    }
+    if not envelope["approve"] and envelope.get("reason"):
+        response["reason"] = envelope["reason"]
+    return response
 
 
 def operator_headers() -> dict[str, str]:
@@ -221,7 +238,7 @@ def main() -> int:
                     "before schedule_change. Copy the exact schedule_arguments returned by "
                     "the service. Never claim a change was scheduled without the tool result."
                 ),
-                tools=[approval_tool(connection.id)],
+                tools=[approval_tool(connection.id, mcp_url)],
             ),
         )
         client = project.get_openai_client()
@@ -270,10 +287,7 @@ def main() -> int:
         envelope = decision_envelope(approval, arguments, approve)
         recorded = record_decision(mcp_url, envelope)
 
-        approval_response = {
-            key: envelope[key]
-            for key in ("type", "id", "approval_request_id", "approve", "reason")
-        }
+        approval_response = foundry_approval_response(envelope)
         final_response = client.responses.create(
             previous_response_id=write_response.id,
             input=[approval_response],
