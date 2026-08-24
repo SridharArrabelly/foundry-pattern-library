@@ -94,8 +94,8 @@ flowchart LR
 ## What's inside
 
 Fifteen patterns in four groups. Each group answers a different question, so you can start
-with whichever one matches the problem in front of you. The deck and the run-of-show below
-walk the groups in order; the numbers are just stable folder IDs.
+with whichever one matches the problem in front of you. The deck follows the same group
+order; the numbers are just stable folder IDs.
 
 ### Platform foundation & governance
 
@@ -420,26 +420,3 @@ flowchart LR
   C --- R
   S --> L["Integrity-sealed release record<br/>OIDC actor + eval + versions"]
 ```
-
-## Suggested run-of-show
-
-Walked group by group — the same order as `foundry-patterns.pptx`. Pick the depth to suit
-the room; the order is what matters.
-
-| Group | # | Pattern |
-|-------|---|---------|
-| Platform foundation & governance | 1 | AI gateway & model access (APIM) |
-| Platform foundation & governance | 8 | AI safety (Prompt Shields + Content Safety) |
-| Platform foundation & governance | 13 | Human approval for consequential tool actions |
-| Agent construction & knowledge | 2 | Foundry Agent Service (prompt and hosted agents) |
-| Agent construction & knowledge | 3 | Microsoft IQ — the intelligence layer |
-| Agent construction & knowledge | 12 | Centralized Toolboxes (one governed MCP endpoint) |
-| Agent construction & knowledge | 14 | Model adaptation (fine-tuning & evaluation) |
-| Agent construction & knowledge | 10 | Memory (short-term + long-term) |
-| Orchestration & interoperability | 4 | Agentic Loop (build skills, not agents) |
-| Orchestration & interoperability | 5 | Multi-agent orchestration (Agent Framework) |
-| Orchestration & interoperability | 9 | Cross-cloud interop (MCP / A2A) |
-| Lifecycle, assurance & operations | 7 | Evaluation & release gate |
-| Lifecycle, assurance & operations | 6 | Observability & tracing (OpenTelemetry) |
-| Lifecycle, assurance & operations | 11 | Cost & latency (prompt cache + Model Router) |
-| Lifecycle, assurance & operations | 15 | Agent lifecycle & promotion (dev → test → prod) |
