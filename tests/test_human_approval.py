@@ -105,6 +105,11 @@ class HumanApprovalTests(unittest.TestCase):
             tool["require_approval"]["always"]["tool_names"], ["schedule_change"]
         )
 
+    def test_demo_windows_are_generated_in_the_future(self):
+        for request_id in ("CRQ-1001", "CRQ-1002", "CRQ-1003"):
+            scheduled = self.arguments(request_id)["scheduled_for"]
+            self.assertGreater(store_module.parse_utc_epoch(scheduled), self.clock.value)
+
     def test_tool_and_operator_credentials_are_strictly_separated(self):
         database = str(Path(self.temp.name) / "server.sqlite3")
         with patch.dict(
@@ -256,6 +261,54 @@ class HumanApprovalTests(unittest.TestCase):
         second_clock.value += store_module.DECISION_TTL_SECONDS + 1
         with self.assertRaises(store_module.StaleApproval):
             second.schedule_change(pending)
+
+    def test_past_schedule_is_rejected_before_decision_and_execution(self):
+        self.register()
+        self.clock.value = (
+            store_module.parse_utc_epoch(self.arguments()["scheduled_for"]) + 1
+        )
+        with self.assertRaises(store_module.StaleApproval):
+            self.store.record_decision(self.envelope())
+
+        short_clock = Clock()
+        short_requests = (
+            ("CRQ-1001", "First", 60, "First reason."),
+            ("CRQ-1002", "Second", 120, "Second reason."),
+            ("CRQ-1003", "Third", 180, "Third reason."),
+        )
+        nonces = iter(("short-one", "short-two", "short-three"))
+        with patch.object(store_module, "DEMO_REQUESTS", short_requests):
+            short = store_module.ApprovalStore(
+                Path(self.temp.name) / "short.sqlite3",
+                now=short_clock,
+                nonce_factory=lambda: next(nonces),
+            )
+        arguments = short.get_change_request("CRQ-1003")["schedule_arguments"]
+        short.register_pending(
+            {
+                "pending_approval_id": arguments["pending_approval_id"],
+                "approval_request_id": "approval-short",
+                "server_label": store_module.SERVER_LABEL,
+                "tool_name": store_module.WRITE_TOOL,
+                "arguments": arguments,
+            }
+        )
+        short.record_decision(
+            {
+                "type": "mcp_approval_response",
+                "id": "decision-short",
+                "approval_request_id": "approval-short",
+                "pending_approval_id": arguments["pending_approval_id"],
+                "approve": True,
+                "reason": "reviewed",
+                "server_label": store_module.SERVER_LABEL,
+                "tool_name": store_module.WRITE_TOOL,
+                "arguments": arguments,
+            }
+        )
+        short_clock.value += 181
+        with self.assertRaises(store_module.StaleApproval):
+            short.schedule_change(arguments)
 
     def test_malformed_or_mismatched_foundry_item_is_rejected(self):
         valid = SimpleNamespace(

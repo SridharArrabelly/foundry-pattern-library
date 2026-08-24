@@ -7,8 +7,15 @@ param location string = resourceGroup().location
 @description('Fully qualified image already pushed to an Azure Container Registry.')
 param containerImage string
 
-@description('Existing Azure Container Registry name in this resource group.')
+@description('Existing Azure Container Registry name in this resource group. Managed-identity ARM-audience authentication must be enabled before deployment.')
 param containerRegistryName string
+
+@allowed([
+  'rbac'
+  'rbac-abac'
+])
+@description('Registry authorization mode: rbac uses AcrPull; rbac-abac uses Container Registry Repository Reader.')
+param containerRegistryAuthorizationMode string = 'rbac'
 
 @secure()
 @description('Tool-only key stored in the Container App and Foundry project connection.')
@@ -28,6 +35,10 @@ var compact = toLower(replace(name, '-', ''))
 var storageName = take('${compact}${uniqueString(resourceGroup().id)}', 24)
 var shareName = 'changecontrol'
 var acrPullRoleDefinitionId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+var acrRepositoryReaderRoleDefinitionId = 'b93aa761-3e63-49ed-ac28-beffa264f7ac'
+var registryPullRoleDefinitionId = containerRegistryAuthorizationMode == 'rbac-abac'
+  ? acrRepositoryReaderRoleDefinitionId
+  : acrPullRoleDefinitionId
 
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: containerRegistryName
@@ -39,14 +50,14 @@ resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
 }
 
 resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(registry.id, pullIdentity.id, acrPullRoleDefinitionId)
+  name: guid(registry.id, pullIdentity.id, registryPullRoleDefinitionId)
   scope: registry
   properties: {
     principalId: pullIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId(
       'Microsoft.Authorization/roleDefinitions',
-      acrPullRoleDefinitionId
+      registryPullRoleDefinitionId
     )
   }
 }
@@ -197,3 +208,6 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
 output mcpUrl string = 'https://${app.properties.configuration.ingress.fqdn}/mcp'
 output containerAppName string = app.name
 output storageAccountName string = storage.name
+output requiredRegistryRole string = containerRegistryAuthorizationMode == 'rbac-abac'
+  ? 'Container Registry Repository Reader'
+  : 'AcrPull'

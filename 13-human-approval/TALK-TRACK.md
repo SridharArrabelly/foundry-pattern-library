@@ -35,8 +35,9 @@
 ## Running it
 1. Deploy the service using [`infra/README.md`](infra/README.md), then create a Foundry
    project connection that stores the endpoint and `x-mcp-api-key`.
-2. Set `MCP_CHANGE_CONTROL_URL`, `MCP_CHANGE_CONTROL_CONNECTION_NAME`, and the
-   operator-only `MCP_CHANGE_CONTROL_API_KEY` in the current process.
+2. Set `MCP_CHANGE_CONTROL_URL`, `MCP_CHANGE_CONTROL_CONNECTION_NAME`,
+   `MCP_CHANGE_CONTROL_TOOL_API_KEY`, and the separate operator-only
+   `MCP_CHANGE_CONTROL_OPERATOR_API_KEY` in the current process.
 3. Reject path:
    `uv run python 13-human-approval/run_approval_demo.py --change-request CRQ-1002`,
    inspect the call, type `REJECT`, and show **zero** side effects.
@@ -45,7 +46,7 @@
    inspect the call, type `APPROVE`, and show one correlated side effect. The script
    replays the same decision and tool arguments; the count remains one.
 5. Run local negative-path tests:
-   `uv run python -m unittest tests.test_human_approval`.
+   `uv run python -m unittest discover -s tests -p "test_human_approval.py" -v`.
 
 The main demo has no auto-approve flag. A Foundry prompt agent cannot call localhost;
 local tests validate the service and state machine but are not presented as cloud

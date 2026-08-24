@@ -27,19 +27,19 @@ DEMO_REQUESTS = (
     (
         "CRQ-1001",
         "Restart the inventory synchronization worker",
-        "2026-08-25T02:00:00Z",
+        3_600,
         "Apply the reviewed runtime configuration.",
     ),
     (
         "CRQ-1002",
         "Rotate the reporting service deployment",
-        "2026-08-25T03:00:00Z",
+        7_200,
         "Move the service to the approved image digest.",
     ),
     (
         "CRQ-1003",
         "Enable the reviewed order-validation rule",
-        "2026-08-25T04:00:00Z",
+        10_800,
         "Activate the approved rule during the maintenance window.",
     ),
 )
@@ -95,6 +95,19 @@ def iso_time(epoch: int) -> str:
     return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def parse_utc_epoch(value: str) -> int:
+    """Parse one explicit UTC timestamp and reject ambiguous/local values."""
+    if not value.endswith("Z"):
+        raise MalformedApproval("scheduled_for must be an ISO-8601 UTC timestamp ending in Z")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as error:
+        raise MalformedApproval("scheduled_for is not a valid ISO-8601 timestamp") from error
+    if parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        raise MalformedApproval("scheduled_for must use UTC")
+    return int(parsed.timestamp())
+
+
 def canonical_json(value: dict[str, Any]) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
@@ -125,8 +138,7 @@ def normalize_schedule_arguments(value: dict[str, Any] | str) -> tuple[dict[str,
         normalized[key] = item.strip()
     if not normalized["pending_approval_id"].startswith("pending-"):
         raise MalformedApproval("pending_approval_id is not server-issued")
-    if not normalized["scheduled_for"].endswith("Z"):
-        raise MalformedApproval("scheduled_for must be an ISO-8601 UTC timestamp ending in Z")
+    parse_utc_epoch(normalized["scheduled_for"])
     return normalized, canonical_json(normalized)
 
 
@@ -237,11 +249,12 @@ class ApprovalStore:
                 """
             )
             now = self.now()
-            for request_id, summary, scheduled_for, reason in DEMO_REQUESTS:
+            for request_id, summary, schedule_offset_seconds, reason in DEMO_REQUESTS:
                 if connection.execute(
                     "SELECT 1 FROM change_requests WHERE request_id = ?", (request_id,)
                 ).fetchone():
                     continue
+                scheduled_for = iso_time(now + schedule_offset_seconds)
                 pending_id = f"pending-{self.nonce_factory()}"
                 _, canonical = normalize_schedule_arguments(
                     {
@@ -333,6 +346,8 @@ class ApprovalStore:
                 raise MissingApproval("pending approval ID was not issued by this service")
             if now > pending["expires_at"]:
                 raise StaleApproval("pending approval expired before registration")
+            if parse_utc_epoch(arguments["scheduled_for"]) <= now:
+                raise StaleApproval("scheduled change window is no longer in the future")
             exact = (
                 pending["server_label"] == payload["server_label"]
                 and pending["tool_name"] == payload["tool_name"]
@@ -436,6 +451,8 @@ class ApprovalStore:
                 )
             if now > pending["expires_at"]:
                 raise StaleApproval("pending approval expired before the decision")
+            if parse_utc_epoch(arguments["scheduled_for"]) <= now:
+                raise StaleApproval("scheduled change window passed before the decision")
 
             by_decision = connection.execute(
                 "SELECT * FROM decisions WHERE decision_id = ?", (envelope["id"],)
@@ -564,6 +581,9 @@ class ApprovalStore:
                     "side_effect_id": existing["side_effect_id"],
                     "idempotent_replay": True,
                 }
+
+            if parse_utc_epoch(normalized["scheduled_for"]) <= now:
+                raise StaleApproval("scheduled change window passed before execution")
 
             if pending["status"] != "approved":
                 raise MissingApproval(
