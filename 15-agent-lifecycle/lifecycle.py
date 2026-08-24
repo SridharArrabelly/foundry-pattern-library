@@ -737,15 +737,21 @@ class FoundryEnvironment:
             raise RuntimeError(
                 f"{self.name}: stable endpoint response did not complete"
             )
-        text = "".join(
-            content.get("text", "")
+        texts = [
+            content.get("text", "").strip()
             for item in payload.get("output", [])
             for content in item.get("content", [])
             if content.get("type") == "output_text"
-        ).strip()
-        if not text:
+            and content.get("text", "").strip()
+        ]
+        unique_texts = list(dict.fromkeys(texts))
+        if not unique_texts:
             raise RuntimeError(f"{self.name}: agent response was empty")
-        return text
+        if len(unique_texts) != 1:
+            raise RuntimeError(
+                f"{self.name}: stable endpoint returned conflicting output_text values"
+            )
+        return unique_texts[0]
 
     def smoke(
         self,

@@ -221,7 +221,11 @@ class AgentLifecycleTests(unittest.TestCase):
                             {
                                 "type": "output_text",
                                 "text": '{"category":"BR2","release":"approved"}',
-                            }
+                            },
+                            {
+                                "type": "output_text",
+                                "text": '{"category":"BR2","release":"approved"}',
+                            },
                         ]
                     }
                 ],
@@ -237,6 +241,33 @@ class AgentLifecycleTests(unittest.TestCase):
         )
         self.assertIn("api-version=v1", url)
         self.assertNotIn("agent_reference", post.call_args.kwargs["json"])
+
+        conflicting = SimpleNamespace(
+            status_code=200,
+            json=lambda: {
+                "status": "completed",
+                "output": [
+                    {
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": '{"category":"BR2","release":"approved"}',
+                            },
+                            {
+                                "type": "output_text",
+                                "text": '{"category":"AX7","release":"approved"}',
+                            },
+                        ]
+                    }
+                ],
+            },
+        )
+        with patch.object(
+            lifecycle.requests,
+            "request",
+            return_value=conflicting,
+        ), self.assertRaisesRegex(RuntimeError, "conflicting output_text"):
+            environment.invoke("route this")
 
     def test_selector_wait_handles_eventual_consistency_and_blocks_unsafe_activation(self):
         class EventuallyConsistent:
