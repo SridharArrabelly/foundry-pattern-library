@@ -138,7 +138,25 @@ def configure_new_pattern_slide(
         set_font_size(shapes[index], 14)
     for index, text in zip((21, 23), arrow_labels):
         set_text(shapes[index], text)
-        set_font_size(shapes[index], 10)
+        set_font_size(shapes[index], 10.5)
+        shapes[index].text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+        shapes[index].text_frame.margin_left = 0
+        shapes[index].text_frame.margin_right = 0
+        shapes[index].text_frame.margin_top = 0
+        shapes[index].text_frame.margin_bottom = 0
+        shapes[index].text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+    # The template's labels were wider than the inter-box gaps, so the next
+    # node clipped their final characters. Keep the first label inside the
+    # 1.05-inch horizontal gap and the second clear of the right-hand node.
+    shapes[21].left = Inches(3.72)
+    shapes[21].top = Inches(3.43)
+    shapes[21].width = Inches(0.96)
+    shapes[21].height = Inches(0.48)
+    shapes[21].text_frame.paragraphs[0].line_spacing = 1.05
+    shapes[23].left = Inches(7.95)
+    shapes[23].top = Inches(3.32)
+    shapes[23].width = Inches(1.55)
+    shapes[23].height = Inches(0.34)
     for index, text in zip((28, 31, 34), benefits):
         set_text(shapes[index], text)
         set_font_size(shapes[index], 13)
@@ -159,7 +177,7 @@ def ensure_new_pattern_slides(presentation):
                 "Operator decision\nseparate identity",
                 "Change-control MCP\none-time nonce",
             ),
-            "arrow_labels": ("approval request", "approve / reject"),
+            "arrow_labels": ("approval\nrequest", "approve / reject"),
             "benefits": (
                 "Read-only tools continue without an approval interruption",
                 "Rejected and stale decisions fail closed with zero side effects",
@@ -177,7 +195,7 @@ def ensure_new_pattern_slides(presentation):
                 "Foundry SFT job\nreviewed JSONL",
                 "Developer eval tier\nsame test + cleanup",
             ),
-            "arrow_labels": ("baseline metrics", "stable behavior"),
+            "arrow_labels": ("baseline\nmetrics", "stable behavior"),
             "benefits": (
                 "RAG / Search / Foundry IQ remain the path for changing knowledge",
                 "Schema, accuracy, adherence, tokens and latency \u2014 not training loss",
@@ -195,7 +213,7 @@ def ensure_new_pattern_slides(presentation):
                 "Stable endpoint\nselector \u2192 candidate",
                 "Rollback\nselector \u2192 prior",
             ),
-            "arrow_labels": ("immutable version", "eval evidence"),
+            "arrow_labels": ("immutable\nversion", "eval evidence"),
             "benefits": (
                 "Current agent object model \u2014 no new legacy Agent Application",
                 "Stable endpoint URL does not change across promotion or rollback",
