@@ -231,6 +231,27 @@ class ModelAdaptationTests(unittest.TestCase):
             )
         )
 
+    def test_arm_request_uses_fetched_bearer_token(self):
+        credential = SimpleNamespace(
+            get_token=lambda scope: SimpleNamespace(token="test-arm-token")
+        )
+        response = SimpleNamespace(status_code=200)
+        with patch.object(
+            adapt.requests,
+            "request",
+            return_value=response,
+        ) as request:
+            returned = adapt.arm_request(
+                credential,
+                "GET",
+                "https://management.azure.com/resource?api-version=1",
+            )
+        self.assertIs(returned, response)
+        self.assertEqual(
+            request.call_args.kwargs["headers"]["Authorization"],
+            "Bearer test-arm-token",
+        )
+
     def test_resume_provenance_rejects_unrelated_or_modified_jobs(self):
         report = adapt.validate_datasets()
         config = adapt.Config(
