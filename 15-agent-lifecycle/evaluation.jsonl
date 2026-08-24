@@ -1,0 +1,4 @@
+{"id":"access","input":"Grant the audit team read access to the archive.","expected_category":"AX7"}
+{"id":"service","input":"The reporting endpoint is returning timeouts.","expected_category":"BR2"}
+{"id":"billing","input":"Why is the same period listed on two invoices?","expected_category":"CZ9"}
+{"id":"unsupported","input":"Choose a theme for the annual meeting.","expected_category":"UNSUPPORTED"}

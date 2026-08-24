@@ -158,7 +158,7 @@ def main():
 
         print(
             f"\nPortal: Foundry > your project > Agents > {AGENT_NAME} "
-            "(versioned) — Identity shows its Entra Agent ID."
+            "(versioned) — verify the development/published identity and its permissions."
         )
         # Left running for the observability + eval demos. To remove a version:
         # project.agents.delete_version(agent_name=agent.name, agent_version=agent.version)

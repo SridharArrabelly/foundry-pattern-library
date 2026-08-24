@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "canonical_agent_name": "enterprise-triage-router",
+  "model_alias": "primary-chat",
+  "instructions_file": "instructions.md",
+  "previous_instructions_file": "previous_instructions.md",
+  "aliases": {
+    "models": {
+      "primary-chat": {
+        "environment_variable": "LIFECYCLE_MODEL_DEPLOYMENT",
+        "required": true
+      }
+    },
+    "connections": {
+      "enterprise-knowledge": {
+        "environment_variable": "LIFECYCLE_KNOWLEDGE_CONNECTION",
+        "required": false
+      }
+    },
+    "toolboxes": {
+      "governed-tools": {
+        "environment_variable": "LIFECYCLE_TOOLBOX_NAME",
+        "required": false,
+        "version_environment_variable": "LIFECYCLE_TOOLBOX_VERSION",
+        "changed": false
+      }
+    }
+  },
+  "evaluation": {
+    "dataset": "evaluation.jsonl",
+    "minimum_accuracy": 1.0,
+    "minimum_schema_validity": 1.0,
+    "required_metrics": [
+      "classification_accuracy",
+      "schema_validity"
+    ]
+  },
+  "release": {
+    "previous_approved_version": "1",
+    "change_reference": "PATTERN-15-DEMO",
+    "metadata": {
+      "owner": "platform-engineering",
+      "purpose": "industry-neutral lifecycle demonstration"
+    }
+  }
+}

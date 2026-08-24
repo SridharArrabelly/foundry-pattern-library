@@ -1,8 +1,8 @@
 # Pattern 2 (hosted) — a real Foundry **hosted agent**
 
 Your own **Agent Framework** code, containerized and run by **Foundry Agent Service**.
-The platform pulls the image, provisions compute, gives the agent its **own Entra Agent ID**,
-and exposes a dedicated endpoint. This is the "bring-your-own-code" hosting model — distinct
+The platform pulls the image, provisions compute, and exposes a dedicated endpoint with
+its own Agent Identity/blueprint when published. This is the "bring-your-own-code" hosting model — distinct
 from the prompt-based agent in [`../create_prompt_agent.py`](../create_prompt_agent.py).
 
 ```
@@ -120,8 +120,21 @@ azd down               # remove the hosted agent (and azd-provisioned resources)
 | You provide | model + instructions + tools (config) | your **code/container** (any framework) |
 | Runtime | Foundry-managed assistant | your process on managed compute |
 | State | managed threads + vector store | you own it (or use Foundry memory/toolbox) |
-| Identity | Entra Agent ID | **dedicated** Entra Agent ID |
+| Identity | shared in development; dedicated when published | **dedicated** Agent Identity/blueprint when published |
 | Best when | fast, declarative, File Search RAG | custom orchestration, custom protocols, control |
 
-Both are governable Foundry agents with an Entra Agent ID — the point of Pattern 2: **you
-didn't build a runtime, an identity system and a hosting plane. Foundry did.**
+Both have a governable identity lifecycle — the point of Pattern 2: **you didn't build a
+runtime, an identity system and a hosting plane. Foundry did.**
+
+## Production identity checklist
+
+- Development agents use the project's shared agent identity; a published endpoint gets
+  a dedicated Agent Identity/blueprint.
+- Project permissions are not copied to that published identity. Assign production
+  permissions explicitly and at least privilege.
+- Attended OBO calls authorize the user and agent together; unattended app-only calls
+  authorize the agent application alone.
+- Identity defines the authorization/audit subject. Human approval is a separate runtime
+  control and never substitutes for downstream authorization.
+
+This hosted sample does not implement or claim a live OBO proof.
