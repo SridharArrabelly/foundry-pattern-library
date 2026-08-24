@@ -90,6 +90,14 @@ class AgentLifecycleTests(unittest.TestCase):
             "passed": passed,
         }
 
+    def test_non_object_agent_output_fails_closed(self):
+        for value in ("[]", "null", '"text"', "42", "true"):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    lifecycle.parse_agent_output(value, "candidate"),
+                    ("", False),
+                )
+
     def test_manifest_aliases_dataset_and_environment_topology_validate(self):
         environment = {
             "LIFECYCLE_MODEL_DEPLOYMENT": "gpt-4.1-mini",

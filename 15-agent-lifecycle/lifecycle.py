@@ -255,9 +255,10 @@ def parse_agent_output(text: str, expected_release: str) -> tuple[str, bool]:
         value = json.loads(text)
     except json.JSONDecodeError:
         return "", False
+    if not isinstance(value, dict):
+        return "", False
     valid = (
-        isinstance(value, dict)
-        and set(value) == {"category", "release"}
+        set(value) == {"category", "release"}
         and value.get("category") in CATEGORIES
         and value.get("release") == expected_release
     )
