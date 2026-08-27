@@ -1,6 +1,6 @@
 # Pattern 1 — AI gateway & model access (APIM)
 
-**Group:** Platform foundation & governance  ·  **Runs 1st of 15** in the run order
+**Group:** Platform foundation & governance  ·  **Runs 1st of 16 demos** in the run order
 
 **Slide title:** *Keep your gateway. Foundry plugs in behind it — and sits above it.*
 

@@ -1,4 +1,4 @@
-"""Shared concurrent workflow for the local and Foundry-hosted Pattern 5 entry points."""
+"""Shared concurrent agent orchestration for the Pattern 5A entry points."""
 from agent_framework import Agent
 from agent_framework.orchestrations import ConcurrentBuilder
 

@@ -1,6 +1,6 @@
 # Pattern 13 — Human approval for consequential tool actions
 
-**Group:** Platform foundation & governance  ·  **Runs 3rd of 15** in the run order
+**Group:** Platform foundation & governance  ·  **Runs 3rd of 16 demos** in the run order
 
 **Slide title:** *Pause the exact tool call — approve intent, then enforce it downstream.*
 

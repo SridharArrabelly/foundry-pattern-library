@@ -1,6 +1,6 @@
 # Pattern 14 — Model adaptation (fine-tuning & evaluation)
 
-**Group:** Agent construction & knowledge  ·  **Runs 7th of 15** in the run order
+**Group:** Agent construction & knowledge  ·  **Runs 7th of 16 demos** in the run order
 
 **Slide title:** *Adapt stable behavior — then prove the gain on untouched data.*
 

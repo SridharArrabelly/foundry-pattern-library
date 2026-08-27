@@ -1,5 +1,5 @@
 """
-Pattern 5 — Multi-agent orchestration with Microsoft Agent Framework.
+Pattern 5A — Agent orchestration (multi-agent coordination).
 
 A deliberately SIMPLE orchestration: a client request fans out concurrently to two
 specialist agents — a Portfolio Analyst and a Compliance Officer — and their views are
@@ -10,7 +10,7 @@ This local entry point runs on the customer's Azure AI Gateway (OpenAI-compatibl
 The same workflow definition is hosted through Foundry's Responses protocol under
 ./hosted/, so the orchestration is also a first-class managed endpoint.
 
-Run:  uv run python 05-multi-agent/orchestrator.py
+Run:  uv run python 05a-agent-orchestration/orchestrator.py
 """
 import asyncio
 import os
@@ -71,7 +71,7 @@ async def main():
     print("TALK TRACK: two specialists reasoned in parallel and returned one fan-in result — no")
     print("hand-wired handoff graph. Use this when parallelism or trust boundaries earn it;")
     print("otherwise prefer one loop + N skills (Pattern 4). The same workflow is published")
-    print("through Foundry under 05-multi-agent/hosted as a managed Responses endpoint.")
+    print("through Foundry under 05a-agent-orchestration/hosted as a managed Responses endpoint.")
 
 
 if __name__ == "__main__":

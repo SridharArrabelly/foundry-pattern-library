@@ -1,4 +1,4 @@
-# Pattern 5 (hosted) — Foundry-managed multi-agent orchestration
+# Pattern 5A (hosted) — Foundry-managed agent orchestration
 
 The same concurrent **Portfolio Analyst + Compliance Officer** workflow used by
 [`../orchestrator.py`](../orchestrator.py) is served as a Foundry hosted agent.
@@ -25,7 +25,7 @@ hosted/
 ## Run and invoke locally
 
 ```powershell
-cd 05-multi-agent/hosted
+cd 05a-agent-orchestration/hosted
 copy src\multi-agent-orchestrator\.env.example src\multi-agent-orchestrator\.env
 azd ai agent run
 ```

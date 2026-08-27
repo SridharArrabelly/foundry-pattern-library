@@ -1,6 +1,6 @@
 # Pattern 4 — Agentic Loop (build skills, not agents)
 
-**Group:** Orchestration & interoperability  ·  **Runs 9th of 15** in the run order
+**Group:** Orchestration & interoperability  ·  **Runs 9th of 16 demos** in the run order
 
 **Slide title:** *One agent. One loop (Plan → Act → Observe). N swappable skills.*
 
@@ -40,7 +40,7 @@ Microsoft shipped at Build 2026 (the Agentic Loop + Skills-as-folders).
 4. Engine selector: **Hand-rolled → Copilot SDK → Copilot SDK BYOM → Agent Framework.**
    Same loop; only the model/harness swaps. (BYOM needs `az login` + gpt-5/o-series.)
 
-## Pairs with Pattern 5
-This is the honest setup for the multi-agent slide: *default here; escalate to
-multi-agent orchestration only when you genuinely need parallel specialists or trust
-boundaries.*
+## Pairs with Pattern 5A and 5B
+This is the honest setup for the orchestration family: *default here; use 5A when
+parallel specialists or trust boundaries earn multi-agent coordination, and 5B when the
+application must own an explicit, checkpointed process graph.*

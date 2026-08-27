@@ -15,8 +15,8 @@ dependencies = [
     # Observability (Pattern 6)
     "azure-monitor-opentelemetry>=1.6.0",
     "opentelemetry-sdk>=1.27.0",
-    # Local + Foundry-hosted multi-agent orchestration (Pattern 5)
-    "agent-framework>=1.9.0",
+    # Agent orchestration + graph workflows (Patterns 5A + 5B)
+    "agent-framework>=1.10.0",
     # OpenAI-compatible calls (Pattern 1 gateway client)
     "openai>=1.40.0",
     # MCP interop and approval service (Patterns 3, 9, 12 + 13)

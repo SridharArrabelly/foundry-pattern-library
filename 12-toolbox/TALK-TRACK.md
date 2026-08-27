@@ -1,6 +1,6 @@
 # Pattern 12 — Centralized Toolboxes (one governed MCP endpoint)
 
-**Group:** Agent construction & knowledge  ·  **Runs 6th of 15** in the run order
+**Group:** Agent construction & knowledge  ·  **Runs 6th of 16 demos** in the run order
 
 **Slide title:** *Curate tools once. Every agent gets them — governed, versioned, discoverable.*
 

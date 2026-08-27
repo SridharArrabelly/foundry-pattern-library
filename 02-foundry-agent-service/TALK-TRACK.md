@@ -1,6 +1,6 @@
 # Pattern 2 — Foundry Agent Service (prompt and hosted agents)
 
-**Group:** Agent construction & knowledge  ·  **Runs 4th of 15** in the run order
+**Group:** Agent construction & knowledge  ·  **Runs 4th of 16 demos** in the run order
 
 **Slide title:** *A managed agent runtime — threads, tools, memory and identity, server-side.*
 

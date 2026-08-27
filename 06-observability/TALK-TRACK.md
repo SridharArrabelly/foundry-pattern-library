@@ -1,6 +1,6 @@
 # Pattern 6 — Observability & tracing (OpenTelemetry)
 
-**Group:** Lifecycle, assurance & operations  ·  **Runs 13th of 15** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 14th of 16 demos** in the run order
 
 **Slide title:** *One OpenTelemetry trace tree per agent run — in the portal AND your stack.*
 

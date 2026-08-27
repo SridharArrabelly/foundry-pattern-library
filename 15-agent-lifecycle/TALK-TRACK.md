@@ -1,6 +1,6 @@
 # Pattern 15 — Agent lifecycle & promotion (dev → test → prod)
 
-**Group:** Lifecycle, assurance & operations  ·  **Runs 15th of 15** in the run order
+**Group:** Lifecycle, assurance & operations  ·  **Runs 16th of 16 demos** in the run order
 
 **Slide title:** *Promote immutable versions behind one endpoint — roll back without deleting state.*
 

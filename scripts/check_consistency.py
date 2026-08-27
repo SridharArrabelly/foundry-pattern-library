@@ -8,67 +8,73 @@ from pptx import Presentation
 ROOT = Path(__file__).resolve().parents[1]
 
 PATTERNS = [
-    (1, "01-ai-gateway-model-access", "AI gateway & model access (APIM)", "Platform foundation & governance"),
-    (8, "08-ai-safety", "AI safety (Prompt Shields + Content Safety)", "Platform foundation & governance"),
+    ("1", "01-ai-gateway-model-access", "AI gateway & model access (APIM)", "Platform foundation & governance"),
+    ("8", "08-ai-safety", "AI safety (Prompt Shields + Content Safety)", "Platform foundation & governance"),
     (
-        13,
+        "13",
         "13-human-approval",
         "Human approval for consequential tool actions",
         "Platform foundation & governance",
     ),
     (
-        2,
+        "2",
         "02-foundry-agent-service",
         "Foundry Agent Service (prompt and hosted agents)",
         "Agent construction & knowledge",
     ),
-    (3, "03-microsoft-iq", "Microsoft IQ \u2014 the intelligence layer", "Agent construction & knowledge"),
+    ("3", "03-microsoft-iq", "Microsoft IQ \u2014 the intelligence layer", "Agent construction & knowledge"),
     (
-        12,
+        "12",
         "12-toolbox",
         "Centralized Toolboxes (one governed MCP endpoint)",
         "Agent construction & knowledge",
     ),
     (
-        14,
+        "14",
         "14-model-adaptation",
         "Model adaptation (fine-tuning & evaluation)",
         "Agent construction & knowledge",
     ),
-    (10, "10-memory", "Memory (short-term + long-term)", "Agent construction & knowledge"),
+    ("10", "10-memory", "Memory (short-term + long-term)", "Agent construction & knowledge"),
     (
-        4,
+        "4",
         "04-agentic-loop",
         "Agentic Loop (build skills, not agents)",
         "Orchestration & interoperability",
     ),
     (
-        5,
-        "05-multi-agent",
-        "Multi-agent orchestration (Agent Framework)",
+        "5A",
+        "05a-agent-orchestration",
+        "Agent orchestration (multi-agent coordination)",
         "Orchestration & interoperability",
     ),
-    (9, "09-aws-interop", "Cross-cloud interop (MCP / A2A)", "Orchestration & interoperability"),
     (
-        7,
+        "5B",
+        "05b-workflow-orchestration",
+        "Workflow orchestration (graph-based pipeline)",
+        "Orchestration & interoperability",
+    ),
+    ("9", "09-aws-interop", "Cross-cloud interop (MCP / A2A)", "Orchestration & interoperability"),
+    (
+        "7",
         "07-evaluation-release-gate",
         "Evaluation & release gate",
         "Lifecycle, assurance & operations",
     ),
     (
-        6,
+        "6",
         "06-observability",
         "Observability & tracing (OpenTelemetry)",
         "Lifecycle, assurance & operations",
     ),
     (
-        11,
+        "11",
         "11-caching-cost",
         "Cost & latency (prompt cache + Model Router)",
         "Lifecycle, assurance & operations",
     ),
     (
-        15,
+        "15",
         "15-agent-lifecycle",
         "Agent lifecycle & promotion (dev \u2192 test \u2192 prod)",
         "Lifecycle, assurance & operations",
@@ -84,6 +90,8 @@ OLD_REFERENCES = (
     "Agent Service (prompt and hosted agent)",
     "Governance (Prompt Shields + Content Safety)",
     "Evaluation \u2192 optimization (CI gate)",
+    "05-multi-agent",
+    "Multi-agent orchestration (Agent Framework)",
 )
 
 
@@ -92,13 +100,20 @@ def fail(message: str):
 
 
 def check_folders_and_talk_tracks():
+    families = {re.match(r"\d+", label).group() for label, _, _, _ in PATTERNS}
+    if len(PATTERNS) != 16 or len(families) != 15:
+        fail(
+            f"catalog defines {len(families)} families / {len(PATTERNS)} demos, "
+            "expected 15 / 16"
+        )
     numbered = sorted(
-        int(path.name[:2])
+        path.name
         for path in ROOT.iterdir()
-        if path.is_dir() and re.fullmatch(r"\d{2}-.+", path.name)
+        if path.is_dir() and re.fullmatch(r"\d{2}[ab]?-.+", path.name)
     )
-    if numbered != list(range(1, 16)):
-        fail(f"numbered folders are not contiguous 1-15: {numbered}")
+    expected_folders = sorted(folder for _, folder, _, _ in PATTERNS)
+    if numbered != expected_folders:
+        fail(f"pattern folders {numbered}, expected {expected_folders}")
 
     for position, (number, folder, name, group) in enumerate(PATTERNS, start=1):
         talk_track = ROOT / folder / "TALK-TRACK.md"
@@ -111,7 +126,7 @@ def check_folders_and_talk_tracks():
         expected_group = f"**Group:** {group}"
         if not lines[2].startswith(expected_group):
             fail(f"{folder}/TALK-TRACK.md group/run header is inconsistent: {lines[2]!r}")
-        if f"**Runs {ordinal(position)} of 15**" not in lines[2]:
+        if f"**Runs {ordinal(position)} of 16 demos**" not in lines[2]:
             fail(f"{folder}/TALK-TRACK.md run position is inconsistent: {lines[2]!r}")
 
 
@@ -130,19 +145,27 @@ def check_readme():
 
     expected_numbers = [item[0] for item in PATTERNS]
     table_numbers = [
-        int(value)
-        for value in re.findall(r"^\| (\d+) \| `\d{2}-", inside, flags=re.MULTILINE)
+        value
+        for value in re.findall(
+            r"^\| (\d+(?:A|B)?) \| `\d{2}[ab]?-",
+            inside,
+            flags=re.MULTILINE,
+        )
     ]
     if table_numbers != expected_numbers:
         fail(f"README group-table order {table_numbers}, expected {expected_numbers}")
     diagram_numbers = [
-        int(value)
-        for value in re.findall(r"^### (\d+) \u00b7 ", diagrams, flags=re.MULTILINE)
+        value
+        for value in re.findall(
+            r"^### (\d+(?:A|B)?) \u00b7 ",
+            diagrams,
+            flags=re.MULTILINE,
+        )
     ]
     if diagram_numbers != expected_numbers:
         fail(f"README diagram order {diagram_numbers}, expected {expected_numbers}")
-    if "Fifteen patterns in four groups." not in readme:
-        fail("README pattern count is not fifteen")
+    if "Fifteen pattern families in four groups, with sixteen runnable demos." not in readme:
+        fail("README family/demo count is inconsistent")
     if "## Suggested run-of-show" in readme:
         fail("README should not include a presentation run-of-show")
 
@@ -165,10 +188,17 @@ def slide_text(slide) -> str:
     return "\n".join(values)
 
 
+def deck_label(pattern_label: str) -> str:
+    match = re.fullmatch(r"(\d+)([AB]?)", pattern_label)
+    if match is None:
+        fail(f"invalid pattern label: {pattern_label}")
+    return f"{int(match.group(1)):02d}{match.group(2)}"
+
+
 def check_deck():
     deck = Presentation(ROOT / "foundry-patterns.pptx")
-    if len(deck.slides) != 23:
-        fail(f"deck has {len(deck.slides)} slides, expected 23")
+    if len(deck.slides) != 24:
+        fail(f"deck has {len(deck.slides)} slides, expected 24")
 
     texts = [slide_text(slide) for slide in deck.slides]
     found = []
@@ -179,7 +209,7 @@ def check_deck():
             if any(
                 getattr(shape, "has_text_frame", False)
                 and shape.top / 914400 < 1.5
-                and shape.text == f"{number:02d}"
+                and shape.text == deck_label(number)
                 for shape in slide.shapes
             )
             and name in text
@@ -187,13 +217,13 @@ def check_deck():
         if len(matches) != 1:
             fail(f"deck title {number} {name!r} found on slides {matches}")
         found.append(matches[0])
-    expected_slides = [5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22]
+    expected_slides = [5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23]
     if found != expected_slides:
         fail(f"deck pattern slide order is inconsistent: {found}")
 
     all_text = "\n".join(texts)
-    if "15 patterns" not in texts[0]:
-        fail("deck title slide does not say 15 patterns")
+    if "15 pattern families" not in texts[0] or "16 demos" not in texts[0]:
+        fail("deck title slide family/demo count is inconsistent")
     for group in dict.fromkeys(item[3] for item in PATTERNS):
         if group not in all_text:
             fail(f"deck section group missing: {group}")
@@ -234,7 +264,10 @@ def main():
     check_readme()
     check_deck()
     check_stale_references()
-    print("Consistency check passed: 15 folders, talk tracks, README surfaces, and deck align.")
+    print(
+        "Consistency check passed: 15 pattern families, 16 demos, "
+        "talk tracks, README surfaces, and deck align."
+    )
 
 
 if __name__ == "__main__":
