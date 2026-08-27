@@ -166,6 +166,18 @@ def check_readme():
         fail(f"README diagram order {diagram_numbers}, expected {expected_numbers}")
     if "Fifteen pattern families in four groups, with sixteen runnable demos." not in readme:
         fail("README family/demo count is inconsistent")
+    if "## How the pieces fit" not in readme:
+        fail("README lifecycle framing section is missing")
+    for stage in (
+        "Build in GitHub",
+        "Context",
+        "Run in Foundry",
+        "Govern",
+        "Improve",
+        "Surface",
+    ):
+        if f"| **{stage}** |" not in readme:
+            fail(f"README lifecycle mapping is missing {stage}")
     if "## Suggested run-of-show" in readme:
         fail("README should not include a presentation run-of-show")
 
@@ -197,8 +209,8 @@ def deck_label(pattern_label: str) -> str:
 
 def check_deck():
     deck = Presentation(ROOT / "foundry-patterns.pptx")
-    if len(deck.slides) != 24:
-        fail(f"deck has {len(deck.slides)} slides, expected 24")
+    if len(deck.slides) != 25:
+        fail(f"deck has {len(deck.slides)} slides, expected 25")
 
     texts = [slide_text(slide) for slide in deck.slides]
     found = []
@@ -217,13 +229,17 @@ def check_deck():
         if len(matches) != 1:
             fail(f"deck title {number} {name!r} found on slides {matches}")
         found.append(matches[0])
-    expected_slides = [5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23]
+    expected_slides = [6, 7, 8, 10, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24]
     if found != expected_slides:
         fail(f"deck pattern slide order is inconsistent: {found}")
 
     all_text = "\n".join(texts)
     if "15 pattern families" not in texts[0] or "16 demos" not in texts[0]:
         fail("deck title slide family/demo count is inconsistent")
+    if "One enterprise agent system" not in texts[1]:
+        fail("deck lifecycle framing slide is missing or out of order")
+    if "Where this catalog fits" not in texts[2]:
+        fail("deck catalog map slide is missing or out of order")
     for group in dict.fromkeys(item[3] for item in PATTERNS):
         if group not in all_text:
             fail(f"deck section group missing: {group}")

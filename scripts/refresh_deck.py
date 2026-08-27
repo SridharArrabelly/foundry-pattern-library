@@ -6,6 +6,7 @@ import re
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
@@ -13,6 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 DECK = ROOT / "foundry-patterns.pptx"
 PURPLE = RGBColor(0x86, 0x61, 0xC5)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+NAVY = RGBColor(0x09, 0x1F, 0x2C)
+GRAY = RGBColor(0x60, 0x5E, 0x5C)
+LIGHT_GRAY = RGBColor(0xF7, 0xF7, 0xF7)
+LIGHT_PURPLE = RGBColor(0xF3, 0xF1, 0xF8)
+BLUE = RGBColor(0x00, 0x78, 0xD4)
+GREEN = RGBColor(0x10, 0x7C, 0x41)
+ORANGE = RGBColor(0xD8, 0x9B, 0x6A)
 
 
 def shape_texts(slide):
@@ -60,6 +68,152 @@ def set_font_size(target, points):
     for paragraph in target.text_frame.paragraphs:
         for run in paragraph.runs:
             run.font.size = Pt(points)
+
+
+def add_text(
+    slide,
+    text,
+    left,
+    top,
+    width,
+    height,
+    *,
+    size,
+    color=NAVY,
+    bold=False,
+    align=PP_ALIGN.LEFT,
+    font_name="Aptos",
+    vertical_anchor=MSO_ANCHOR.TOP,
+):
+    shape = slide.shapes.add_textbox(
+        Inches(left),
+        Inches(top),
+        Inches(width),
+        Inches(height),
+    )
+    frame = shape.text_frame
+    frame.clear()
+    frame.margin_left = 0
+    frame.margin_right = 0
+    frame.margin_top = 0
+    frame.margin_bottom = 0
+    frame.vertical_anchor = vertical_anchor
+    for index, line in enumerate(text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = align
+        paragraph.space_before = Pt(0)
+        paragraph.space_after = Pt(0)
+        run = paragraph.add_run()
+        run.text = line
+        run.font.name = font_name
+        run.font.size = Pt(size)
+        run.font.bold = bold
+        run.font.color.rgb = color
+    return shape
+
+
+def add_box(
+    slide,
+    left,
+    top,
+    width,
+    height,
+    *,
+    fill=WHITE,
+    line=PURPLE,
+    radius=True,
+    line_width=1.25,
+):
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE if radius else MSO_SHAPE.RECTANGLE,
+        Inches(left),
+        Inches(top),
+        Inches(width),
+        Inches(height),
+    )
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = fill
+    shape.line.color.rgb = line
+    shape.line.width = Pt(line_width)
+    return shape
+
+
+def clear_slide(slide):
+    for shape in list(slide.shapes):
+        slide.shapes._spTree.remove(shape.element)
+
+
+def add_brand(slide):
+    colors = (
+        RGBColor(0xF2, 0x50, 0x22),
+        RGBColor(0x7F, 0xBA, 0x00),
+        RGBColor(0x00, 0xA4, 0xEF),
+        RGBColor(0xFF, 0xB9, 0x00),
+    )
+    positions = ((10.88, 0.42), (11.01, 0.42), (10.88, 0.55), (11.01, 0.55))
+    for color, (left, top) in zip(colors, positions):
+        square = add_box(
+            slide,
+            left,
+            top,
+            0.11,
+            0.11,
+            fill=color,
+            line=color,
+            radius=False,
+            line_width=0,
+        )
+        square.line.fill.background()
+    add_text(
+        slide,
+        "Microsoft Foundry",
+        11.24,
+        0.36,
+        1.55,
+        0.36,
+        size=11,
+        color=GRAY,
+        bold=True,
+        vertical_anchor=MSO_ANCHOR.MIDDLE,
+    )
+
+
+def add_footer(slide, number):
+    line = add_box(
+        slide,
+        0.62,
+        7.0,
+        12.1,
+        0.01,
+        fill=RGBColor(0xD2, 0xD0, 0xCE),
+        line=RGBColor(0xD2, 0xD0, 0xCE),
+        radius=False,
+        line_width=0,
+    )
+    line.line.fill.background()
+    add_text(
+        slide,
+        "Microsoft Foundry Patterns  \u00b7  subject to change",
+        0.62,
+        7.06,
+        10.5,
+        0.28,
+        size=9,
+        color=GRAY,
+        font_name="Aptos Mono",
+    )
+    add_text(
+        slide,
+        str(number),
+        12.2,
+        7.06,
+        0.5,
+        0.28,
+        size=9,
+        color=GRAY,
+        align=PP_ALIGN.RIGHT,
+        font_name="Aptos Mono",
+    )
 
 
 def replace_text(slide, old_values, new_value):
@@ -124,6 +278,476 @@ def clone_shape_slide(presentation, template):
             "p:extLst",
         )
     return slide
+
+
+def add_stage_card(slide, index, title, body, left, *, emphasized=False):
+    fill = PURPLE if emphasized else LIGHT_PURPLE
+    text_color = WHITE if emphasized else NAVY
+    muted = WHITE if emphasized else GRAY
+    add_box(
+        slide,
+        left,
+        2.0,
+        1.75,
+        2.45,
+        fill=fill,
+        line=PURPLE,
+        line_width=1.5,
+    )
+    add_text(
+        slide,
+        f"{index:02d}",
+        left + 0.18,
+        2.2,
+        0.45,
+        0.28,
+        size=10,
+        color=WHITE if emphasized else PURPLE,
+        bold=True,
+        font_name="Aptos Mono",
+    )
+    add_text(
+        slide,
+        title,
+        left + 0.18,
+        2.6,
+        1.39,
+        0.62,
+        size=15 if len(title) < 18 else 13.5,
+        color=text_color,
+        bold=True,
+    )
+    add_text(
+        slide,
+        body,
+        left + 0.18,
+        3.35,
+        1.39,
+        0.72,
+        size=10.5,
+        color=muted,
+    )
+
+
+def add_value_card(slide, title, body, left):
+    add_box(
+        slide,
+        left,
+        5.02,
+        3.82,
+        1.25,
+        fill=WHITE,
+        line=RGBColor(0xD2, 0xD0, 0xCE),
+        line_width=1,
+    )
+    dot = add_box(
+        slide,
+        left + 0.2,
+        5.32,
+        0.12,
+        0.12,
+        fill=PURPLE,
+        line=PURPLE,
+        radius=False,
+        line_width=0,
+    )
+    dot.line.fill.background()
+    add_text(
+        slide,
+        title,
+        left + 0.45,
+        5.16,
+        3.1,
+        0.3,
+        size=14,
+        bold=True,
+    )
+    add_text(
+        slide,
+        body,
+        left + 0.45,
+        5.55,
+        3.1,
+        0.5,
+        size=10.5,
+        color=GRAY,
+    )
+
+
+def configure_enterprise_system_slide(slide):
+    clear_slide(slide)
+    background = add_box(
+        slide,
+        0,
+        0,
+        13.34,
+        7.5,
+        fill=WHITE,
+        line=WHITE,
+        radius=False,
+        line_width=0,
+    )
+    background.line.fill.background()
+    add_brand(slide)
+    add_text(
+        slide,
+        "One enterprise agent system",
+        0.62,
+        0.72,
+        8.7,
+        0.55,
+        size=30,
+        bold=True,
+    )
+    add_text(
+        slide,
+        "Build \u2192 context \u2192 run \u2192 govern \u2192 improve \u2192 surface",
+        0.62,
+        1.35,
+        10.5,
+        0.36,
+        size=13,
+        color=GRAY,
+        font_name="Aptos Mono",
+    )
+
+    stages = (
+        ("GitHub", "Code \u00b7 prompts\nskills \u00b7 tools"),
+        ("Microsoft IQ", "Enterprise data\nand context"),
+        ("Foundry", "Agent runtime\nand models"),
+        ("Entra + Purview", "Identity \u00b7 policy\nsafety \u00b7 approval"),
+        ("Evaluate +\noptimize", "Quality \u00b7 cost\nfeedback loops"),
+        ("Apps + M365", "APIs \u00b7 Teams\nwhere work happens"),
+    )
+    for index, (title, body) in enumerate(stages, start=1):
+        left = 0.62 + (index - 1) * 2.07
+        add_stage_card(
+            slide,
+            index,
+            title,
+            body,
+            left,
+            emphasized=index == 3,
+        )
+        if index < len(stages):
+            arrow = add_box(
+                slide,
+                left + 1.82,
+                3.02,
+                0.22,
+                0.34,
+                fill=PURPLE,
+                line=PURPLE,
+                radius=False,
+                line_width=0,
+            )
+            arrow._element.spPr.prstGeom.set("prst", "chevron")
+            arrow.line.fill.background()
+
+    add_value_card(
+        slide,
+        "Compose, don\u2019t replace",
+        "Keep your gateway and cloud.\nAdd Foundry\u2019s agent factory.",
+        0.62,
+    )
+    add_value_card(
+        slide,
+        "Govern by design",
+        "Identity \u00b7 policy \u00b7 safety \u00b7 approval\nsurround the runtime.",
+        4.75,
+    )
+    add_value_card(
+        slide,
+        "Improve under evidence",
+        "Evaluation and telemetry\nfeed controlled releases.",
+        8.88,
+    )
+    add_footer(slide, 2)
+
+
+def add_pattern_chip(slide, text, left, top, width, *, fill=WHITE):
+    add_box(
+        slide,
+        left,
+        top,
+        width,
+        0.42,
+        fill=fill,
+        line=PURPLE,
+        line_width=1,
+    )
+    add_text(
+        slide,
+        text,
+        left + 0.08,
+        top + 0.02,
+        width - 0.16,
+        0.36,
+        size=9.5,
+        color=NAVY,
+        bold=True,
+        vertical_anchor=MSO_ANCHOR.MIDDLE,
+    )
+
+
+def configure_catalog_map_slide(slide):
+    clear_slide(slide)
+    background = add_box(
+        slide,
+        0,
+        0,
+        13.34,
+        7.5,
+        fill=WHITE,
+        line=WHITE,
+        radius=False,
+        line_width=0,
+    )
+    background.line.fill.background()
+    add_brand(slide)
+    add_text(
+        slide,
+        "Where this catalog fits",
+        0.62,
+        0.72,
+        8.7,
+        0.55,
+        size=30,
+        bold=True,
+    )
+    add_text(
+        slide,
+        "Build in GitHub. Run and improve in Foundry. Reach users through channels you already own.",
+        0.62,
+        1.35,
+        11.4,
+        0.36,
+        size=13,
+        color=GRAY,
+    )
+
+    add_box(
+        slide,
+        0.62,
+        2.0,
+        2.0,
+        4.05,
+        fill=NAVY,
+        line=NAVY,
+        line_width=0,
+    )
+    add_text(
+        slide,
+        "BUILD IN\nGITHUB",
+        0.86,
+        2.28,
+        1.52,
+        0.64,
+        size=17,
+        color=WHITE,
+        bold=True,
+    )
+    add_text(
+        slide,
+        "Code \u00b7 prompts\nskills \u00b7 graphs\nevaluation assets",
+        0.86,
+        3.12,
+        1.52,
+        0.72,
+        size=10.5,
+        color=WHITE,
+    )
+    build_chips = (
+        "04  Loop",
+        "05A  Agents",
+        "05B  Workflows",
+        "15  Lifecycle",
+    )
+    for index, chip in enumerate(build_chips):
+        add_pattern_chip(
+            slide,
+            chip,
+            0.84,
+            4.02 + index * 0.46,
+            1.56,
+            fill=LIGHT_PURPLE,
+        )
+
+    frame = add_box(
+        slide,
+        2.96,
+        1.92,
+        7.42,
+        4.22,
+        fill=LIGHT_GRAY,
+        line=PURPLE,
+        line_width=2,
+    )
+    frame.adjustments[0] = 0.03
+    header = add_box(
+        slide,
+        2.96,
+        1.92,
+        7.42,
+        0.58,
+        fill=PURPLE,
+        line=PURPLE,
+        radius=False,
+        line_width=0,
+    )
+    header.line.fill.background()
+    add_text(
+        slide,
+        "RUN + IMPROVE IN FOUNDRY \u2014 THE AGENT FACTORY",
+        3.2,
+        2.05,
+        6.94,
+        0.3,
+        size=14,
+        color=WHITE,
+        bold=True,
+        align=PP_ALIGN.CENTER,
+    )
+
+    rows = (
+        ("CONTEXT", ("03  Microsoft IQ", "10  Memory", "12  Toolboxes")),
+        ("RUN", ("02  Agent Service", "09  Cross-cloud")),
+        ("GOVERN", ("01  AI Gateway", "08  AI Safety", "13  Approval")),
+        (
+            "IMPROVE",
+            ("06  Observability", "07  Eval gate", "11  Cost", "14  Adaptation"),
+        ),
+    )
+    for row_index, (label, chips) in enumerate(rows):
+        top = 2.75 + row_index * 0.78
+        add_text(
+            slide,
+            label,
+            3.18,
+            top + 0.08,
+            0.92,
+            0.3,
+            size=10,
+            color=PURPLE,
+            bold=True,
+            font_name="Aptos Mono",
+        )
+        chip_width = (
+            1.22
+            if len(chips) == 4
+            else 1.65
+            if len(chips) == 3
+            else 2.45
+        )
+        for chip_index, chip in enumerate(chips):
+            add_pattern_chip(
+                slide,
+                chip,
+                4.16 + chip_index * (chip_width + 0.18),
+                top,
+                chip_width,
+            )
+
+    for left in (2.68, 10.42):
+        arrow = add_box(
+            slide,
+            left,
+            3.62,
+            0.2,
+            0.42,
+            fill=PURPLE,
+            line=PURPLE,
+            radius=False,
+            line_width=0,
+        )
+        arrow._element.spPr.prstGeom.set("prst", "chevron")
+        arrow.line.fill.background()
+
+    add_box(
+        slide,
+        10.66,
+        2.0,
+        2.06,
+        4.05,
+        fill=LIGHT_PURPLE,
+        line=PURPLE,
+        line_width=1.5,
+    )
+    add_text(
+        slide,
+        "SURFACE",
+        10.9,
+        2.3,
+        1.58,
+        0.32,
+        size=17,
+        color=PURPLE,
+        bold=True,
+        align=PP_ALIGN.CENTER,
+    )
+    add_text(
+        slide,
+        "Apps\nAPIs\nTeams\nM365\nother channels",
+        10.9,
+        3.0,
+        1.58,
+        1.55,
+        size=13,
+        color=NAVY,
+        bold=True,
+        align=PP_ALIGN.CENTER,
+    )
+    add_text(
+        slide,
+        "Use the channels\nyour users already own.",
+        10.9,
+        5.05,
+        1.58,
+        0.55,
+        size=9.5,
+        color=GRAY,
+        align=PP_ALIGN.CENTER,
+    )
+    add_text(
+        slide,
+        "Primary placement only \u2014 the patterns compose across the lifecycle.",
+        3.14,
+        6.3,
+        7.1,
+        0.3,
+        size=10,
+        color=GRAY,
+        align=PP_ALIGN.CENTER,
+        font_name="Aptos Mono",
+    )
+    add_footer(slide, 3)
+
+
+def ensure_framing_slides(presentation):
+    entry = next(
+        slide
+        for slide in presentation.slides
+        if any(
+            value in slide_text(slide)
+            for value in (
+                "Keep your gateway and cloud \u2014 add the agent factory",
+                "One enterprise agent system",
+            )
+        )
+    )
+    configure_enterprise_system_slide(entry)
+    catalog = next(
+        (
+            slide
+            for slide in presentation.slides
+            if "Where this catalog fits" in slide_text(slide)
+        ),
+        None,
+    )
+    if catalog is None:
+        catalog = presentation.slides.add_slide(presentation.slide_layouts[0])
+    configure_catalog_map_slide(catalog)
+    return entry, catalog
 
 
 def configure_new_pattern_slide(
@@ -597,17 +1221,6 @@ def update_content(presentation):
         "15 pattern families   \u00b7   16 demos   \u00b7   for architects & principal engineers",
     )
 
-    entry = find_slide(presentation, "gateway gives you MODEL ACCESS")
-    replace_text(
-        entry,
-        (
-            "The wedge: keep your gateway, keep your cloud \u2014 add the factory",
-            "Enterprise entry point: keep your gateway, keep your cloud \u2014 add the factory",
-            "Keep your gateway and cloud \u2014 add the agent factory",
-        ),
-        "Keep your gateway and cloud \u2014 add the agent factory",
-    )
-
     run_show = find_slide(presentation, "Run-of-show")
     tables = [shape for shape in run_show.shapes if getattr(shape, "has_table", False)]
     if len(tables[0].table.rows) == 9:
@@ -668,6 +1281,24 @@ def update_content(presentation):
         ),
         "Fifteen pattern families in four groups. Sixteen runnable demos.",
     )
+    close = find_slide(presentation, "and the close")
+    close_message = (
+        "Your other cloud runs an agent. Foundry runs the agent FACTORY. "
+        "MCP + A2A join the two.\n"
+        "Keep your existing stack where it works \u00b7 add Foundry where you have gaps "
+        "(identity, eval, tracing, grounding, safety) \u00b7 unify governance with "
+        "Entra and Purview across your estate."
+    )
+    close_body = next(
+        shape
+        for shape in close.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text.startswith("Your other cloud runs an agent.")
+    )
+    set_text(close_body, close_message)
+    for index, paragraph in enumerate(close_body.text_frame.paragraphs):
+        for run in paragraph.runs:
+            run.font.size = Pt(21 if index == 0 else 15)
 
     set_group_slide(
         groups[1],
@@ -706,16 +1337,6 @@ def update_content(presentation):
             "Enterprise APIM + Foundry composition \u2014 no rip-and-replace",
         ),
         "Enterprise APIM + Foundry composition \u2014 no rip-and-replace",
-    )
-    factory_caption = next(
-        shape
-        for shape in entry.shapes
-        if getattr(shape, "has_text_frame", False)
-        and shape.text.startswith("Foundry \u2014 the agent factory")
-    )
-    factory_caption.text_frame.paragraphs[-1].runs[0].font.size = Pt(12)
-    factory_caption.text_frame.paragraphs[-1].runs[0].font.color.rgb = RGBColor(
-        0x60, 0x5E, 0x5C
     )
     replace_text(
         patterns[8],
@@ -862,12 +1483,14 @@ def reorder_slides(presentation):
     patterns = pattern_slides(presentation)
     groups = group_slides(presentation)
     title = presentation.slides[0]
-    entry = find_slide(presentation, "gateway gives you MODEL ACCESS")
+    entry = find_slide(presentation, "One enterprise agent system")
+    catalog_map = find_slide(presentation, "Where this catalog fits")
     run_show = find_slide(presentation, "Run-of-show")
     close = find_slide(presentation, "and the close")
     order = [
         title,
         entry,
+        catalog_map,
         run_show,
         groups[1],
         patterns[1],
@@ -917,6 +1540,7 @@ def update_footers(presentation):
 
 def main():
     presentation = Presentation(DECK)
+    ensure_framing_slides(presentation)
     ensure_pattern_five_variants(presentation)
     ensure_new_pattern_slides(presentation)
     update_content(presentation)
@@ -924,7 +1548,7 @@ def main():
     update_footers(presentation)
     presentation.save(DECK)
     print(
-        f"Refreshed {DECK.name}: 24 slides, "
+        f"Refreshed {DECK.name}: 25 slides, "
         "15 pattern families and 16 demos."
     )
 

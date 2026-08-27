@@ -64,6 +64,41 @@ call. The table below marks which is which.
 Close on the Build 2026 triad: **Foundry** (platform) + **Citadel** (governance at scale,
 Foundry + APIM) + **Agentic Patterns** (business value).
 
+## How the pieces fit
+
+Treat the platform as one lifecycle, not a collection of disconnected products:
+
+```mermaid
+flowchart LR
+  B["BUILD<br/>GitHub<br/>code · prompts · skills · graphs"] -->
+  C["CONTEXT<br/>Microsoft IQ<br/>enterprise data"] -->
+  R["RUN<br/>Foundry<br/>agents · models · tools"] -->
+  G["GOVERN<br/>Entra · Purview<br/>safety · approval"] -->
+  I["IMPROVE<br/>evaluation · telemetry<br/>cost · adaptation"] -->
+  S["SURFACE<br/>apps · APIs<br/>Teams · M365"]
+```
+
+Three principles hold the system together:
+
+- **Compose, don't replace** — keep your gateway and existing cloud; add Foundry's agent
+  factory where it provides runtime, context, control and lifecycle capabilities.
+- **Govern by design** — identity, policy, safety and approval surround the runtime
+  rather than being bolted on after deployment.
+- **Improve under evidence** — evaluation and telemetry feed controlled releases; model
+  or prompt changes do not promote themselves.
+
+The catalog maps to the lifecycle by primary role. The patterns compose across stages;
+this is orientation, not a product or deployment boundary.
+
+| Stage | Primary pattern demos |
+|---|---|
+| **Build in GitHub** | 4 Agentic Loop · 5A Agent orchestration · 5B Workflow orchestration · 15 Lifecycle |
+| **Context** | 3 Microsoft IQ · 10 Memory · 12 Toolboxes |
+| **Run in Foundry** | 2 Agent Service · 9 Cross-cloud interoperability |
+| **Govern** | 1 AI Gateway · 8 AI safety · 13 Human approval |
+| **Improve** | 6 Observability · 7 Evaluation gate · 11 Cost & latency · 14 Model adaptation |
+| **Surface** | Use the apps, APIs, Teams and M365 channels your users already own |
+
 ## Adapting it
 
 This is a **general-purpose Foundry pattern library**, not a pitch against any one vendor.
