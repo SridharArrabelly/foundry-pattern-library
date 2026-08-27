@@ -1,12 +1,12 @@
-# Pattern 5 — Multi-agent orchestration (Agent Framework)
+# Pattern 5A — Agent orchestration (multi-agent coordination)
 
-**Group:** Orchestration & interoperability  ·  **Runs 10th of 15** in the run order
+**Group:** Orchestration & interoperability  ·  **Runs 10th of 16 demos** in the run order
 
-**Slide title:** *Multi-agent — when it earns its keep. Orchestrate specialists, don't hand-wire them.*
+**Slide title:** *Agent orchestration — coordinate specialists with a reusable collaboration pattern.*
 
 ## In brief
-> "You asked about multi-agent orchestration — here's the honest version. **Microsoft
-> Agent Framework** (GA) gives you orchestration primitives — sequential, concurrent,
+> "Agent orchestration answers: *how should specialized agents collaborate?* **Microsoft
+> Agent Framework** gives you high-level patterns — sequential, concurrent,
 > group-chat, handoff, Magentic — without hand-coding a handoff graph. Watch: one client
 > request fans out **concurrently** to a **Portfolio Analyst** and a **Compliance Officer**;
 > they reason in parallel and return one fan-in result. [run `orchestrator.py`]
@@ -21,6 +21,14 @@
 > orchestration when you have true parallel specialists or hard org/trust boundaries** —
 > like separating an advice engine from an independent compliance check. That separation
 > is exactly what this demo shows."
+
+## 5A versus 5B
+- **5A coordinates agents.** `ConcurrentBuilder` generates the dispatcher, fan-out,
+  participant and default fan-in topology for a known collaboration pattern.
+- **5B controls a process.** `WorkflowBuilder` explicitly connects agents and conventional
+  code executors with edges, deterministic conditions, checkpoints and audit output.
+- Both use the same workflow runtime, but they are different abstraction levels and answer
+  different architecture questions.
 
 ## What Foundry gives you here
 - **Framework-managed orchestration** (concurrent/sequential/handoff/group-chat/Magentic)
@@ -40,9 +48,9 @@
 > "Orchestrate specialists when the problem is genuinely parallel — not because a framework let you."
 
 ## Running it
-1. `uv run python 05-multi-agent/orchestrator.py`
+1. `uv run python 05a-agent-orchestration/orchestrator.py`
 2. Show the analyst's risk view and the compliance officer's **BLOCK** with the 70%-equities rule.
-3. `cd 05-multi-agent/hosted; azd ai agent run`, then invoke locally with
+3. `cd 05a-agent-orchestration/hosted; azd ai agent run`, then invoke locally with
    `azd ai agent invoke --local "<request>"`.
 4. After deployment, invoke `multi-agent-orchestrator-hosted` through its Foundry-managed endpoint.
-5. Segue to Pattern 9: "now let's make those specialists reach across clouds."
+5. Segue to 5B: "Now make the process—not the agents—own routing and control."

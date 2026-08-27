@@ -1135,7 +1135,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-framework", specifier = ">=1.9.0" },
+    { name = "agent-framework", specifier = ">=1.10.0" },
     { name = "azure-ai-agents", specifier = ">=1.1.0" },
     { name = "azure-ai-evaluation", specifier = ">=1.0.0" },
     { name = "azure-ai-projects", specifier = ">=2.3.0" },

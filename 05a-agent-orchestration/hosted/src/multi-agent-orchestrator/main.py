@@ -1,5 +1,5 @@
 """
-Foundry-hosted entry point for Pattern 5.
+Foundry-hosted entry point for Pattern 5A.
 
 Serves the concurrent specialist workflow as a Responses 2.0 endpoint on port 8088.
 """

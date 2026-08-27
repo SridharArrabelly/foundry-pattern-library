@@ -1,4 +1,4 @@
-"""Refresh the existing 20-slide deck without changing its established visual style."""
+"""Refresh the established deck without changing its purple visual style."""
 from copy import deepcopy
 from pathlib import Path
 import re
@@ -79,9 +79,15 @@ def pattern_slides(presentation):
             if (
                 getattr(shape, "has_text_frame", False)
                 and shape.top / 914400 < 1.5
-                and re.fullmatch(r"\d{2}", shape.text)
+                and re.fullmatch(r"\d{2}[AB]?", shape.text)
             ):
-                result[int(shape.text)] = slide
+                match = re.fullmatch(r"(\d{2})([AB]?)", shape.text)
+                key = (
+                    int(match.group(1))
+                    if not match.group(2)
+                    else f"{int(match.group(1))}{match.group(2)}"
+                )
+                result[key] = slide
     return result
 
 
@@ -97,6 +103,14 @@ def group_slides(presentation):
 
 def find_slide(presentation, needle):
     return next(slide for slide in presentation.slides if needle in slide_text(slide))
+
+
+def deck_label(number):
+    value = str(number)
+    match = re.fullmatch(r"(\d+)([AB]?)", value)
+    if match is None:
+        raise ValueError(f"Invalid pattern label: {number}")
+    return f"{int(match.group(1)):02d}{match.group(2)}"
 
 
 def clone_shape_slide(presentation, template):
@@ -124,7 +138,7 @@ def configure_new_pattern_slide(
     benefits,
 ):
     shapes = list(slide.shapes)
-    set_text(shapes[5], f"{number:02d}")
+    set_text(shapes[5], deck_label(number))
     set_text(shapes[6], "PATTERN")
     set_text(shapes[7], title)
     set_font_size(shapes[7], 27)
@@ -160,6 +174,50 @@ def configure_new_pattern_slide(
     for index, text in zip((28, 31, 34), benefits):
         set_text(shapes[index], text)
         set_font_size(shapes[index], 13)
+
+
+def ensure_pattern_five_variants(presentation):
+    patterns = pattern_slides(presentation)
+    agent_slide = patterns.get("5A") or patterns.get(5)
+    if agent_slide is None:
+        raise ValueError("Could not find the existing Pattern 5 slide")
+    number_shape = next(
+        shape
+        for shape in agent_slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.top / 914400 < 1.5
+        and shape.text in {"05", "05A"}
+    )
+    set_text(number_shape, "05A")
+
+    patterns = pattern_slides(presentation)
+    if "5B" not in patterns:
+        workflow_slide = clone_shape_slide(presentation, patterns[1])
+        configure_new_pattern_slide(
+            workflow_slide,
+            number="5B",
+            title="Workflow orchestration (graph-based pipeline)",
+            quote=(
+                "\u201cAgents contribute judgment. The workflow owns routing, "
+                "state and control.\u201d"
+            ),
+            demo=(
+                "Mixed code + agent graph \u00b7 deterministic switch \u00b7 "
+                "fail-closed default \u00b7 checkpoint resume."
+            ),
+            nodes=(
+                "Validate request\ncode executor",
+                "Classify risk\nagent executor",
+                "Policy + switch\nexplicit edges",
+                "Audit record\ncode executor",
+            ),
+            arrow_labels=("typed\nmessage", "deterministic\nroute"),
+            benefits=(
+                "WorkflowBuilder makes nodes, edges and terminal output inspectable",
+                "Production / impact rules override model judgment and route exceptions",
+                "Trusted superstep checkpoints resume to the same audit ID and decision",
+            ),
+        )
 
 
 def ensure_new_pattern_slides(presentation):
@@ -265,6 +323,14 @@ def insert_table_row(shape, source_index, before_index):
     source = list(table._tbl.tr_lst)[source_index]
     target = list(table._tbl.tr_lst)[before_index]
     target.addprevious(deepcopy(source))
+
+
+def replace_table_row(shape, target_index, source_index):
+    """Replace a previously merged row with a clean clone of an unmerged data row."""
+    rows = list(shape.table._tbl.tr_lst)
+    target = rows[target_index]
+    target.addprevious(deepcopy(rows[source_index]))
+    shape.table._tbl.remove(target)
 
 
 def set_group_slide(slide, title, promise, pattern_list):
@@ -462,10 +528,27 @@ def update_pattern_five(slide):
     replace_text(
         slide,
         (
+            "Multi-agent orchestration (Agent Framework)",
+            "Agent orchestration (multi-agent coordination)",
+        ),
+        "Agent orchestration (multi-agent coordination)",
+    )
+    replace_text(
+        slide,
+        (
+            "\u201cOrchestrate specialists when the problem is genuinely parallel \u2014 not because a framework let you.\u201d",
+            "\u201cCoordinate agents with a reusable pattern; use a graph when the process must own control.\u201d",
+        ),
+        "\u201cCoordinate agents with a reusable pattern; use a graph when the process must own control.\u201d",
+    )
+    replace_text(
+        slide,
+        (
             "Request fans out to two specialists concurrently; Compliance returns BLOCK, then aggregate.",
             "Concurrent specialists, published as one Foundry-managed Responses endpoint.",
+            "ConcurrentBuilder fans out to specialists; one hosted endpoint returns the fan-in result.",
         ),
-        "Concurrent specialists, published as one Foundry-managed Responses endpoint.",
+        "ConcurrentBuilder fans out to specialists; one hosted endpoint returns the fan-in result.",
     )
     replace_text(
         slide,
@@ -481,6 +564,22 @@ def update_pattern_five(slide):
         ),
         "Managed endpoint \u00b7 compute \u00b7 versions \u00b7 Entra Agent ID",
     )
+    replace_text(
+        slide,
+        (
+            "Managed orchestration (concurrent / sequential / handoff / Magentic)",
+            "ConcurrentBuilder \u00b7 high-level multi-agent collaboration pattern",
+        ),
+        "ConcurrentBuilder \u00b7 high-level multi-agent collaboration pattern",
+    )
+    replace_text(
+        slide,
+        (
+            "Honest guidance: default to Pattern 4; escalate when earned",
+            "5A coordinates agents \u00b7 5B controls an explicit process graph",
+        ),
+        "5A coordinates agents \u00b7 5B controls an explicit process graph",
+    )
 
 
 def update_content(presentation):
@@ -493,8 +592,9 @@ def update_content(presentation):
         (
             "12 patterns   \u00b7   12 demos   \u00b7   for architects & principal engineers",
             "15 patterns   \u00b7   15 demos   \u00b7   for architects & principal engineers",
+            "15 pattern families   \u00b7   16 demos   \u00b7   for architects & principal engineers",
         ),
-        "15 patterns   \u00b7   15 demos   \u00b7   for architects & principal engineers",
+        "15 pattern families   \u00b7   16 demos   \u00b7   for architects & principal engineers",
     )
 
     entry = find_slide(presentation, "gateway gives you MODEL ACCESS")
@@ -516,6 +616,11 @@ def update_content(presentation):
     # normal data row before it so Pattern 9 keeps two independent cells.
     if len(tables[1].table.rows) == 8:
         insert_table_row(tables[1], source_index=3, before_index=4)
+    if (
+        len(tables[1].table.rows) >= 7
+        and tables[1].table.cell(5, 0).is_merge_origin
+    ):
+        replace_table_row(tables[1], target_index=5, source_index=3)
     set_table_rows(
         tables[0],
         [
@@ -540,7 +645,8 @@ def update_content(presentation):
             ("Index", "Patterns"),
             ("ORCHESTRATION & INTEROPERABILITY", ""),
             ("4", "Agentic Loop (build skills, not agents)"),
-            ("5", "Multi-agent orchestration (Agent Framework)"),
+            ("5A", "Agent orchestration (multi-agent coordination)"),
+            ("5B", "Workflow orchestration (graph-based pipeline)"),
             ("9", "Cross-cloud interop (MCP / A2A)"),
             ("LIFECYCLE, ASSURANCE & OPERATIONS", ""),
             ("7", "Evaluation & release gate"),
@@ -550,7 +656,7 @@ def update_content(presentation):
         ],
     )
     merge_table_row(tables[1], 1)
-    merge_table_row(tables[1], 5)
+    merge_table_row(tables[1], 6)
     equalize_table_height(tables[0], 4.48)
     equalize_table_height(tables[1], 4.48)
     replace_text(
@@ -558,8 +664,9 @@ def update_content(presentation):
         (
             "Twelve patterns in four groups. One slide, one live demo each.",
             "Fifteen patterns in four groups. One slide, one live demo each.",
+            "Fifteen pattern families in four groups. Sixteen runnable demos.",
         ),
-        "Fifteen patterns in four groups. One slide, one live demo each.",
+        "Fifteen pattern families in four groups. Sixteen runnable demos.",
     )
 
     set_group_slide(
@@ -578,7 +685,7 @@ def update_content(presentation):
         groups[3],
         "Orchestration & interoperability",
         "Compose skills, specialists and cross-cloud systems",
-        "04  Agentic Loop   \u00b7   05  Multi-agent orchestration   \u00b7   09  Cross-cloud interop",
+        "04  Agentic Loop   \u00b7   05A  Agent orchestration   \u00b7   05B  Workflow orchestration   \u00b7   09  Cross-cloud",
     )
     set_group_slide(
         groups[4],
@@ -627,7 +734,7 @@ def update_content(presentation):
         "Foundry Agent Service (prompt and hosted agents)",
     )
     update_pattern_three(patterns[3])
-    update_pattern_five(patterns[5])
+    update_pattern_five(patterns["5A"])
     replace_text(
         patterns[7],
         ("Evaluation \u2192 optimization (CI gate)", "Evaluation & release gate"),
@@ -716,6 +823,30 @@ def update_content(presentation):
         for shape in patterns[6].shapes:
             if 4.5 < shape.top / 914400 < 5.5:
                 shape.top -= Inches(0.22)
+    dashed_card = next(
+        shape
+        for shape in patterns[6].shapes
+        if not getattr(shape, "text", "")
+        and shape.left / 914400 > 7
+        and shape.top / 914400 > 4
+        and shape.line.dash_style == MSO_LINE_DASH_STYLE.DASH
+        and shape.element.spPr.prstGeom.get("prst") == "roundRect"
+    )
+    dashed_card.left = Inches(8.99)
+    dashed_card.top = Inches(4.56)
+    dashed_card.width = Inches(3.6)
+    dashed_card.height = Inches(0.7)
+    dashed_connector = next(
+        shape
+        for shape in patterns[6].shapes
+        if not getattr(shape, "text", "")
+        and shape.line.dash_style == MSO_LINE_DASH_STYLE.DASH
+        and shape.element.spPr.prstGeom.get("prst") == "line"
+    )
+    dashed_connector.left = Inches(9.0)
+    dashed_connector.top = Inches(4.56)
+    dashed_connector.width = Inches(1.79)
+    dashed_connector.height = 0
     set_font_size(
         next(
             shape
@@ -750,7 +881,8 @@ def reorder_slides(presentation):
         patterns[10],
         groups[3],
         patterns[4],
-        patterns[5],
+        patterns["5A"],
+        patterns["5B"],
         patterns[9],
         groups[4],
         patterns[7],
@@ -785,12 +917,16 @@ def update_footers(presentation):
 
 def main():
     presentation = Presentation(DECK)
+    ensure_pattern_five_variants(presentation)
     ensure_new_pattern_slides(presentation)
     update_content(presentation)
     reorder_slides(presentation)
     update_footers(presentation)
     presentation.save(DECK)
-    print(f"Refreshed {DECK.name}: 23 slides, 15 canonical patterns, new group order.")
+    print(
+        f"Refreshed {DECK.name}: 24 slides, "
+        "15 pattern families and 16 demos."
+    )
 
 
 if __name__ == "__main__":

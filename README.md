@@ -2,12 +2,12 @@
 
 **Runnable patterns for building, governing and operating agents.**
 
-Fifteen patterns: the original twelve retain **one Private Banking scenario**
-(a wealth-management Relationship Manager assistant), while the three new enterprise
-control patterns are industry-neutral. All are positioned to run **alongside your
-existing gateway and cloud** — not instead of them.
+Fifteen pattern families: approved original demos retain **one Private Banking scenario**
+(a wealth-management Relationship Manager assistant), while the new 5B workflow and
+enterprise control patterns are industry-neutral. All are positioned to run **alongside
+your existing gateway and cloud** — not instead of them.
 
-Each pattern is a folder you can run on its own against your own Foundry project. Nothing
+Each runnable variant is a folder you can run on its own against your Foundry project. Nothing
 here is a mock: if a capability isn't wired up, the pattern says so rather than pretending.
 
 > This is a community sample, **not an official Microsoft product**, and is not endorsed by
@@ -93,7 +93,7 @@ flowchart LR
 
 ## What's inside
 
-Fifteen patterns in four groups. Each group answers a different question, so you can start
+Fifteen pattern families in four groups, with sixteen runnable demos. Each group answers a different question, so you can start
 with whichever one matches the problem in front of you. The deck follows the same group
 order; the numbers are just stable folder IDs.
 
@@ -120,7 +120,8 @@ order; the numbers are just stable folder IDs.
 | # | Folder | Pattern | Live demo move | Runnable? |
 |---|--------|---------|----------------|-----------|
 | 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
-| 5 | `05-multi-agent/` | Multi-agent orchestration (Agent Framework) | Concurrent specialists exposed through a [**Foundry-hosted Responses endpoint**](05-multi-agent/hosted/) | ✅ |
+| 5A | `05a-agent-orchestration/` | Agent orchestration (multi-agent coordination) | `ConcurrentBuilder` fans one request to two specialists and returns their combined result through a [**Foundry-hosted Responses endpoint**](05a-agent-orchestration/hosted/) | ✅ |
+| 5B | `05b-workflow-orchestration/` | Workflow orchestration (graph-based pipeline) | `WorkflowBuilder` mixes agents and code executors with deterministic branching, audit output and checkpoint resume | ✅ |
 | 9 | `09-aws-interop/` | Cross-cloud interop (MCP / A2A) | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
 
 ### Lifecycle, assurance & operations
@@ -145,13 +146,13 @@ Control isn't one pattern — it runs through three planes, each routed a differ
 Patterns 7 and 10 stay on the direct route on purpose — see
 [`docs/coexistence.md`](docs/coexistence.md) for why.
 
-Every pattern folder has a `TALK-TRACK.md` — a short narrative for the pattern plus what
+Every pattern-variant folder has a `TALK-TRACK.md` — a short narrative for the pattern plus what
 Foundry gives you there. Plus [`docs/coexistence.md`](docs/coexistence.md) for coexisting with an
 existing gateway, cloud, or agents.
 
 ## Pattern diagrams
 
-One architecture per pattern — the same diagrams that appear on each slide of
+One architecture per demo variant — the same diagrams that appear on each slide of
 `foundry-patterns.pptx`.
 
 ### 1 · AI gateway & model access (APIM)
@@ -321,8 +322,9 @@ flowchart LR
   EN["Engine: Copilot SDK BYOM<br/>your Azure model + billing"] -.-> OB
 ```
 
-### 5 · Multi-agent orchestration (Agent Framework)
-Fan out to specialists concurrently and return the fan-in result through a
+### 5A · Agent orchestration (multi-agent coordination)
+Use the high-level `ConcurrentBuilder` collaboration pattern to fan out to specialists
+and return the fan-in result through a
 Foundry-managed hosted-agent endpoint.
 
 ```mermaid
@@ -334,6 +336,26 @@ flowchart LR
   PA --> AGG["Aggregate"]
   CO --> AGG
   AGG --> RES["Advice<br/>(BLOCK if unsuitable)"]
+```
+
+### 5B · Workflow orchestration (graph-based pipeline)
+Define the process directly with `WorkflowBuilder`: ordinary code validates input, agents
+contribute semantic judgment, code-owned policy selects an explicit edge, and one audit
+executor produces the terminal record. Invalid model output takes the default blocked
+edge; trusted file checkpoints support deterministic resume.
+
+```mermaid
+flowchart LR
+  IN["Change request"] --> V["Validate<br/>code executor"]
+  V --> C["Classify risk<br/>agent executor"]
+  C --> N["Normalize + policy overrides<br/>code executor"]
+  N -->|"routine test"| S["Standard processor<br/>code"]
+  N -->|"production / impact / uncertainty"| R["Exception reviewer<br/>agent"]
+  N -->|"invalid output"| F["FAIL CLOSED<br/>code"]
+  S --> A["Audit record<br/>code executor"]
+  R --> A
+  F --> A
+  CP["Trusted checkpoint store"] -. "superstep state / resume" .-> N
 ```
 
 ### 9 · Cross-cloud interop (MCP / A2A)
