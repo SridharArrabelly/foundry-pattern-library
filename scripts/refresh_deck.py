@@ -6,6 +6,7 @@ import re
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
@@ -13,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DECK = ROOT / "foundry-patterns.pptx"
 PURPLE = RGBColor(0x86, 0x61, 0xC5)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+INK = RGBColor(0x2D, 0x1E, 0x4F)
+LAVENDER = RGBColor(0xF4, 0xEF, 0xFB)
 
 
 def shape_texts(slide):
@@ -386,6 +389,180 @@ def style_search_card(background, text_shape, live):
             run.font.color.rgb = color
 
 
+def add_lane_card(slide, x, y, width, text, *, live=False, simulated=False):
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE,
+        Inches(x),
+        Inches(y),
+        Inches(width),
+        Inches(0.9),
+    )
+    shape.line.color.rgb = PURPLE
+    shape.line.width = Pt(1.5)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = PURPLE if live else (WHITE if simulated else LAVENDER)
+    frame = shape.text_frame
+    frame.clear()
+    frame.margin_left = Inches(0.08)
+    frame.margin_right = Inches(0.08)
+    frame.margin_top = Inches(0.05)
+    frame.margin_bottom = Inches(0.05)
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+    for index, line in enumerate(text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = PP_ALIGN.CENTER
+        run = paragraph.add_run()
+        run.text = line
+        run.font.size = Pt(10.5 if index else 11.5)
+        run.font.bold = index == 0
+        run.font.color.rgb = WHITE if live else INK
+    return shape
+
+
+def add_lane_label(slide, y, text):
+    shape = slide.shapes.add_textbox(
+        Inches(0.64),
+        Inches(y),
+        Inches(1.0),
+        Inches(0.9),
+    )
+    frame = shape.text_frame
+    frame.clear()
+    frame.margin_left = 0
+    frame.margin_right = 0
+    frame.margin_top = 0
+    frame.margin_bottom = 0
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+    for index, line in enumerate(text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = PP_ALIGN.LEFT
+        run = paragraph.add_run()
+        run.text = line
+        run.font.size = Pt(9.5 if index else 10.5)
+        run.font.bold = True
+        run.font.color.rgb = PURPLE
+
+
+def add_lane_chevron(slide, x, y):
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.CHEVRON,
+        Inches(x),
+        Inches(y + 0.31),
+        Inches(0.25),
+        Inches(0.28),
+    )
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = PURPLE
+    shape.line.fill.background()
+
+
+def update_pattern_nine(slide):
+    title = next(
+        shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and 1.8 < shape.left / 914400 < 2.3
+        and shape.top / 914400 < 0.7
+    )
+    quote = next(
+        shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and 1.4 < shape.top / 914400 < 2.1
+    )
+    demo = next(
+        shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.left / 914400 > 1.5
+        and 2.1 < shape.top / 914400 < 2.7
+    )
+    benefit_shapes = [
+        shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and 5.7 < shape.top / 914400 < 6.9
+    ]
+    for shape in benefit_shapes:
+        if shape.width / 914400 > 3.6 and shape.text.strip():
+            set_text(shape, "")
+    benefits = sorted(
+        (
+            shape
+            for shape in benefit_shapes
+            if 3.0 < shape.width / 914400 < 3.5
+        ),
+        key=lambda shape: shape.left,
+    )
+    set_text(title, "Cross-cloud protocol gateway (APIM + MCP + A2A)")
+    set_font_size(title, 23)
+    set_text(
+        quote,
+        "\u201cMCP invokes a capability. A2A communicates with an agent. APIM governs both.\u201d",
+    )
+    set_font_size(quote, 16)
+    set_text(
+        demo,
+        "Live APIM MCP + A2A lanes \u00b7 deterministic correlation \u00b7 AWS/Bedrock explicitly simulated.",
+    )
+    set_font_size(demo, 13)
+    benefit_values = (
+        "MCP: selected REST operations become tools \u2014 never agents",
+        "A2A: independent agent card, task and result",
+        "APIM: one access, rate-limit and observability boundary",
+    )
+    for shape, value in zip(benefits, benefit_values):
+        set_text(shape, value)
+        set_font_size(shape, 12)
+
+    for shape in list(slide.shapes):
+        top = shape.top / 914400
+        if 2.75 <= top < 5.35:
+            slide.shapes._spTree.remove(shape.element)
+
+    rows = (
+        (
+            2.88,
+            "MCP TOOL\nINVOCATION",
+            (
+                ("REAL FOUNDRY", "prompt agent invokes a tool", False, False),
+                ("REAL APIM", "REST-backed MCP API", True, False),
+                ("REAL REST API", "create_quote operation", False, False),
+                ("SIMULATED AWS", "Lambda-style capability", False, True),
+            ),
+        ),
+        (
+            4.15,
+            "A2A AGENT\nMESSAGING",
+            (
+                ("REAL FOUNDRY", "A2A client messages an agent", False, False),
+                ("REAL APIM", "A2A JSON-RPC API", True, False),
+                ("REAL A2A RUNTIME", "agent card + task result", False, False),
+                ("SIMULATED BEDROCK", "independent agent", False, True),
+            ),
+        ),
+    )
+    x_positions = (1.72, 4.34, 6.71, 9.02)
+    widths = (2.22, 1.95, 1.92, 3.58)
+    chevrons = (4.02, 6.39, 8.70)
+    for y, label, cards in rows:
+        add_lane_label(slide, y, label)
+        for x, width, (heading, detail, live, simulated) in zip(
+            x_positions, widths, cards
+        ):
+            add_lane_card(
+                slide,
+                x,
+                y,
+                width,
+                f"{heading}\n{detail}",
+                live=live,
+                simulated=simulated,
+            )
+        for x in chevrons:
+            add_lane_chevron(slide, x, y)
+
+
 def update_pattern_three(slide):
     replace_text(
         slide,
@@ -647,7 +824,7 @@ def update_content(presentation):
             ("4", "Agentic Loop (build skills, not agents)"),
             ("5A", "Agent orchestration (multi-agent coordination)"),
             ("5B", "Workflow orchestration (graph-based pipeline)"),
-            ("9", "Cross-cloud interop (MCP / A2A)"),
+            ("9", "Cross-cloud protocol gateway (APIM + MCP + A2A)"),
             ("LIFECYCLE, ASSURANCE & OPERATIONS", ""),
             ("7", "Evaluation & release gate"),
             ("6", "Observability & tracing (OpenTelemetry)"),
@@ -685,7 +862,7 @@ def update_content(presentation):
         groups[3],
         "Orchestration & interoperability",
         "Compose skills, specialists and cross-cloud systems",
-        "04  Agentic Loop   \u00b7   05A  Agent orchestration   \u00b7   05B  Workflow orchestration   \u00b7   09  Cross-cloud",
+        "04  Agentic Loop   \u00b7   05A  Agent orchestration   \u00b7   05B  Workflow orchestration   \u00b7   09  Cross-cloud protocol gateway",
     )
     set_group_slide(
         groups[4],
@@ -725,6 +902,7 @@ def update_content(presentation):
         ),
         "AI safety (Prompt Shields + Content Safety)",
     )
+    update_pattern_nine(patterns[9])
     replace_text(
         patterns[2],
         (
