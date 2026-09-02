@@ -18,10 +18,10 @@ new agentic workloads land for the depth a gateway alone can't give.
 1. **Foundry behind your gateway** — your gateway (LiteLLM / APIM / your own) fronts every
    provider; new agentic workloads land on Foundry for the eval/governance/identity depth
    (Pattern 1, `01-ai-gateway-model-access/`).
-2. **Cross-cloud tool calls via MCP** — a Foundry agent invokes a tool hosted on another cloud
-   (e.g., an AWS Lambda, see `09-aws-interop/mcp_aws_lambda_server.py`), and vice-versa.
-3. **A2A hand-off** — expose an agent on another platform to a Foundry orchestrator (or the
-   reverse) over the Agent-to-Agent protocol; each platform owns the agents it's best at.
+2. **Cross-cloud tool calls via MCP** — a Foundry agent invokes a selected capability as a
+   tool through APIM's REST-backed MCP API.
+3. **A2A hand-off** — a Foundry-side client communicates with an independently operating
+   agent through APIM's JSON-RPC A2A API and rewritten agent card.
 4. **Governance overlay** — even for workloads hosted elsewhere, route data interactions
    through Purview DSPM for AI so audit / DLP is unified across clouds.
 
@@ -154,6 +154,32 @@ The policy that does the work:
     counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />
 </inbound>
 ```
+
+### APIM as a cross-cloud protocol gateway
+
+Pattern 9 extends the tool-control point into two distinct lanes. The distinction is semantic,
+not cosmetic:
+
+| Lane | Caller intent | APIM API type | Backend contract |
+| --- | --- | --- | --- |
+| **MCP** | Invoke a capability as a tool | `type: "mcp"` with `mcpTools` referencing selected operations on a separate REST API | deterministic REST request/response |
+| **A2A** | Communicate with an independently operating agent | `type: "a2a"` with agent-card and JSON-RPC mappings | agent card plus `message/send` / task result envelopes |
+
+The Pattern 9 deployment uses API Management API version `2025-09-01-preview`. An MCP API
+does not host `ApiOperation` children: `mcpTools[].operationId` points to operations on the
+pattern-owned REST API. The A2A API maps `a2aProperties.agentCardBackendUrl` and
+`jsonRpcProperties.backendUrl/path` to a genuine adapter runtime.
+
+APIM Basic v2 supports both surfaces. For A2A, APIM replaces the agent-card hostname, sets
+JSON-RPC as the preferred transport, removes other interfaces, and adds its subscription-key
+requirement. APIM supports only JSON-RPC A2A APIs and cannot deserialize outgoing response
+bodies. For MCP, global frontend response payload logging must be zero and no policy may read
+`context.Response.Body`.
+
+The sample backend is always labeled **AWS Lambda / Amazon Bedrock (simulated)**. The
+Container App, APIM REST/MCP/A2A APIs, protocol clients, and deterministic correlation are
+real. This is the credible "wrap first, rewrite later" boundary: replace the simulator only
+after a real external-cloud environment, identity design, and evidence plan exist.
 
 ### Enterprise grounding with Azure AI Search
 

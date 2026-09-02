@@ -54,7 +54,12 @@ PATTERNS = [
         "Workflow orchestration (graph-based pipeline)",
         "Orchestration & interoperability",
     ),
-    ("9", "09-aws-interop", "Cross-cloud interop (MCP / A2A)", "Orchestration & interoperability"),
+    (
+        "9",
+        "09-aws-interop",
+        "Cross-cloud protocol gateway (APIM + MCP + A2A)",
+        "Orchestration & interoperability",
+    ),
     (
         "7",
         "07-evaluation-release-gate",
@@ -175,6 +180,18 @@ def check_readme():
             fail(f"README group table missing: {table_prefix}")
         if f"### {number} \u00b7 {name}" not in diagrams:
             fail(f"README diagram heading missing: {number} {name}")
+
+    pattern_nine = (ROOT / "09-aws-interop" / "README.md").read_text(encoding="utf-8")
+    required_pattern_nine_terms = (
+        "MCP \u2014 invoke a capability as a tool",
+        "A2A \u2014 communicate with an independently operating agent",
+        "AWS Lambda / Amazon Bedrock (simulated)",
+        '`type: "mcp"`',
+        '`type: "a2a"`',
+    )
+    for term in required_pattern_nine_terms:
+        if term not in pattern_nine:
+            fail(f"Pattern 9 runbook is missing required distinction: {term!r}")
 
 
 def slide_text(slide) -> str:

@@ -1,38 +1,51 @@
-# Pattern 9 — Cross-cloud interop (MCP / A2A)
+# Pattern 9 — Cross-cloud protocol gateway (APIM + MCP + A2A)
 
 **Group:** Orchestration & interoperability  ·  **Runs 12th of 16 demos** in the run order
 
-**Slide title:** *Coexistence: your other cloud runs an agent. Foundry runs the agent factory. MCP/A2A joins them.*
+**Slide title:** *Cross-cloud protocol gateway: one APIM boundary, two distinct lanes.*
 
-> **This pattern is a slide + code walkthrough** — no AWS access in this environment. The
-> mock server proves the wire; the topology slide shows the real thing. **AWS Lambda + Bedrock
-> are the concrete example here — swap in whatever cloud the customer runs.**
+> **AWS Lambda and Amazon Bedrock are simulated.** The Container App, APIM REST API,
+> REST-backed MCP API, APIM A2A API, agent card, JSON-RPC runtime, and optional Foundry
+> prompt-agent MCP invocation are real when deployed. Never present simulated AWS as live.
 
 ## In brief
-> "Nothing here asks you to leave the cloud you already run. This is the coexistence pattern:
-> a **Foundry agent** needs a quote from your **AWS-hosted core-banking / pricing engine**.
-> It calls it over **MCP** — [run `call_via_mcp.py`, which spawns the mock 'AWS side'] — and
-> gets the quote back mid-run. The **wire protocol is identical** whether that tool is local,
-> an **AWS Lambda**, or a **Bedrock agent**; when you have AWS you swap in
-> `mcp_aws_lambda_server.py` and the agent code doesn't change. The reverse works too:
-> **A2A** exposes a Foundry agent to a Bedrock orchestrator.
+> "This is one cross-cloud gateway with two intentionally different lanes. In lane one, a
+> **Foundry prompt agent invokes a capability as an MCP tool**. APIM exposes selected REST
+> operations as `mcpTools`, then routes `create_quote` to a deterministic simulated
+> Lambda-style backend.
 >
-> So the strategy is simple: **keep Bedrock where it's working, add Foundry where you have
-> gaps** — the factory: identity, evaluation, tracing, grounding, safety — and let the two
-> clouds talk over open protocols. Even for Bedrock-hosted flows, route data through
-> **Purview DSPM for AI** so audit and DLP are unified across both."
+> In lane two, a **Foundry-side A2A client communicates with an independently operating
+> agent**. APIM mediates JSON-RPC, publishes a rewritten agent card, and routes to a genuine
+> task/artifact runtime that simulates the Bedrock side. A2A is not a plain Bedrock Agent API
+> with a new label.
+>
+> Both lanes return the same deterministic quote correlation, but their semantics stay
+> separate: MCP invokes a tool; A2A messages an agent. APIM supplies one access, rate-limit,
+> and observability boundary across clouds."
 
 ## Topology (slide)
-```
-   Foundry agent ──MCP──▶ AWS Lambda / Bedrock tool   (Foundry calls AWS)
-   Foundry agent ◀─A2A──  Bedrock orchestrator        (AWS calls Foundry)
-        └── governance overlay: Entra Agent ID + Purview DSPM for AI (both clouds) ──┘
+```text
+   Foundry prompt agent -> APIM MCP API -> REST create_quote -> simulated Lambda tool
+   Foundry-side client  -> APIM A2A API -> JSON-RPC runtime -> simulated Bedrock agent
 ```
 
 ## The one-liner
-> "Bedrock runs *an agent*. Foundry runs the *agent factory*. MCP and A2A let each cloud do what it's best at."
+> "MCP invokes a capability. A2A communicates with an agent. APIM governs both without pretending they are the same protocol."
 
 ## Running it
-1. `uv run python 09-aws-interop/call_via_mcp.py` — Foundry-side client → mock AWS tool over MCP.
-2. Show `mcp_aws_lambda_server.py` — the *real* AWS version (boto3 Lambda invoke); "swap this in, agent unchanged."
-3. Land the coexistence + migration path (see `../docs/coexistence.md`).
+1. Run `verify_live.py` and show one correlation ID across real APIM REST, MCP, and A2A.
+2. Run `foundry_mcp_agent.py` only when the Foundry project connection exists; show the
+   actual `mcp_call` item, not only natural-language output.
+3. Point to every `simulation: true` and `AWS Lambda / Amazon Bedrock (simulated)` label.
+4. Finish with the ownership preflight, response-body logging zero rule, cost cap, and cleanup.
+
+## Accuracy guardrails
+
+- APIM MCP management uses `2025-09-01-preview`; the MCP API has no operation children.
+  Its `mcpTools` reference operations on the separate REST API.
+- MCP policies never access `context.Response.Body`; deployment fails if a global diagnostic
+  logs frontend response payload bytes.
+- APIM A2A is JSON-RPC only. APIM rewrites hostname, preferred transport, interfaces, and
+  subscription-key requirements in the agent card. Outgoing response deserialization is not
+  supported.
+- `mcp_aws_lambda_server.py` is optional future work, not live evidence.
