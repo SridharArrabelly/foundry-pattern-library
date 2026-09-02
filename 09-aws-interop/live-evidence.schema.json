@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/foundry-pattern-library/pattern9-live-evidence.schema.json",
+  "title": "Pattern 9 sanitized live evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "verifiedAtUtc",
+    "realComponents",
+    "simulatedComponents",
+    "checks",
+    "quote"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "verifiedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "realComponents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "simulatedComponents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "contains": {
+        "const": "AWS Lambda"
+      }
+    },
+    "checks": {
+      "type": "object"
+    },
+    "quote": {
+      "type": "object",
+      "properties": {
+        "simulation": {
+          "const": true
+        },
+        "simulatedBackend": {
+          "const": "AWS Lambda / Amazon Bedrock (simulated)"
+        }
+      },
+      "required": [
+        "simulation",
+        "simulatedBackend"
+      ]
+    }
+  }
+}
