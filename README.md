@@ -7,8 +7,8 @@ Fifteen pattern families: approved original demos retain **one Private Banking s
 enterprise control patterns are industry-neutral. All are positioned to run **alongside
 your existing gateway and cloud** — not instead of them.
 
-Each runnable variant is a folder you can run on its own against your Foundry project. Nothing
-here is a mock: if a capability isn't wired up, the pattern says so rather than pretending.
+Each runnable variant is a folder you can run on its own against your Foundry project. If a
+capability is simulated, the code and output say so explicitly rather than presenting it as live.
 
 > This is a community sample, **not an official Microsoft product**, and is not endorsed by
 > or supported by Microsoft. Microsoft product names and marks belong to Microsoft; see
@@ -46,8 +46,8 @@ client.
 
 Not every pattern is self-contained. **Pattern 4** runs from the companion
 **[skill-forge](https://github.com/SridharArrabelly/skill-forge)** repo (clone it alongside
-this one as `../skill-forge`), and **Pattern 9** is a code walkthrough rather than a live
-call. The table below marks which is which.
+this one as `../skill-forge`). **Pattern 9** runs live through APIM while keeping its
+AWS/Bedrock backend explicitly simulated. The table below marks which is which.
 
 > **Multi-tenant tip:** `.env` pins `AZURE_TENANT_ID` to your Foundry resource's tenant.
 > If you're signed into more than one tenant, this stops `DefaultAzureCredential` from
@@ -122,7 +122,7 @@ order; the numbers are just stable folder IDs.
 | 4 | `04-agentic-loop/` | Agentic Loop (build skills, not agents) | [skill-forge](https://github.com/SridharArrabelly/skill-forge): one loop, N skills; switch to **Copilot SDK BYOM** | ✅ (skill-forge) |
 | 5A | `05a-agent-orchestration/` | Agent orchestration (multi-agent coordination) | `ConcurrentBuilder` fans one request to two specialists and returns their combined result through a [**Foundry-hosted Responses endpoint**](05a-agent-orchestration/hosted/) | ✅ |
 | 5B | `05b-workflow-orchestration/` | Workflow orchestration (graph-based pipeline) | `WorkflowBuilder` mixes agents and code executors with deterministic branching, audit output and checkpoint resume | ✅ |
-| 9 | `09-aws-interop/` | Cross-cloud interop (MCP / A2A) | Foundry agent → external tool over MCP/A2A (AWS Lambda + Bedrock as the example) (**slide + code walkthrough**) | 📖 code |
+| 9 | `09-aws-interop/` | Cross-cloud protocol gateway (APIM + MCP + A2A) | Separate live APIM lanes: Foundry MCP tool → REST capability; A2A client → independent agent runtime (**AWS/Bedrock simulated**) | ✅ |
 
 ### Lifecycle, assurance & operations
 
@@ -141,7 +141,7 @@ Control isn't one pattern — it runs through three planes, each routed a differ
 | --- | --- | --- |
 | **Client** | your app / SDK | 1 — call the gateway URL |
 | **Agent** | Foundry, server-side, mid-run | 2, 6 — **BYOM** model connection |
-| **Tool** | the agent's MCP tools | 3 — the tool published as an APIM MCP API |
+| **Tool / agent protocol** | an MCP tool call or A2A message | 3 and 9 — APIM publishes governed MCP tools and a distinct A2A agent API |
 
 Patterns 7 and 10 stay on the direct route on purpose — see
 [`docs/coexistence.md`](docs/coexistence.md) for why.
@@ -358,22 +358,20 @@ flowchart LR
   CP["Trusted checkpoint store"] -. "superstep state / resume" .-> N
 ```
 
-### 9 · Cross-cloud interop (MCP / A2A)
-A Foundry agent calls an external tool over MCP (an AWS Lambda in this example); A2A hands off to another cloud's agent (Bedrock here). Swap in whatever the customer runs.
+### 9 · Cross-cloud protocol gateway (APIM + MCP + A2A)
+One APIM boundary governs two different protocol semantics. MCP exposes selected REST
+operations as tools for a Foundry prompt agent. A2A carries JSON-RPC messages to an
+independently operating agent with its own card, task, and result. The APIM, MCP, A2A, and
+Container Apps paths are deployable; AWS Lambda and Amazon Bedrock remain explicitly simulated.
 
 ```mermaid
-flowchart LR
-  subgraph AZURE["Microsoft Azure"]
-    FA["Foundry Agent"]
+flowchart TB
+  subgraph MCP["LANE 1 — MCP invokes a capability as a tool"]
+    FP["Foundry prompt agent"] --> AM["APIM MCP API<br/>mcpTools"] --> AR["APIM REST API<br/>create_quote"] --> LT["Simulated AWS Lambda-style tool"]
   end
-  subgraph AWSC["AWS"]
-    LT["AWS tool — Lambda"]
-    BA["Amazon Bedrock agent"]
+  subgraph A2A["LANE 2 — A2A communicates with an independent agent"]
+    FC["Foundry-side A2A client"] --> AA["APIM A2A API<br/>JSON-RPC"] --> RT["Agent card + task runtime"] --> BA["Simulated Amazon Bedrock agent"]
   end
-  FA --> MCP["MCP / A2A"]
-  MCP --> LT
-  MCP -.->|"A2A"| BA
-  FA -.->|"governed by"| GOV["Entra + Purview across clouds"]
 ```
 
 ### 7 · Evaluation & release gate
